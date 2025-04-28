@@ -1,0 +1,22 @@
+{
+  "name": "api-comparison-rest-graphql",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Master - Thesis",
+  "workspaces": [
+    "backend-rest",
+    "backend-graphql",
+    "frontend-rest",
+    "frontend-graphql"
+  ],
+  "scripts": {
+    "install-all":   "npm install",
+    "dev:rest":      "npm --workspace backend-rest run dev",
+    "dev:graphql":   "npm --workspace backend-graphql run dev",
+    "start:fe-rest": "npm --workspace frontend-rest start",
+    "start:fe-gql":  "npm --workspace frontend-graphql start"
+  },
+  "keywords": [],
+  "author": "Dominik Wojtowicz",
+  "license": "ISC"
+}

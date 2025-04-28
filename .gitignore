@@ -1,0 +1,8 @@
+# Packages
+node_modules/
+
+# Config
+.env
+
+# Development
+tmp/
