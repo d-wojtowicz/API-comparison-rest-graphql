@@ -10,11 +10,11 @@
     "frontend-graphql"
   ],
   "scripts": {
-    "install-all":   "npm install",
-    "dev:rest":      "npm --workspace backend-rest run dev",
-    "dev:graphql":   "npm --workspace backend-graphql run dev",
+    "install-all": "npm install",
+    "dev:rest": "npm --workspace backend-rest run dev",
+    "dev:graphql": "npm --workspace backend-graphql run dev",
     "start:fe-rest": "npm --workspace frontend-rest start",
-    "start:fe-gql":  "npm --workspace frontend-graphql start"
+    "start:fe-gql": "npm --workspace frontend-graphql start"
   },
   "keywords": [],
   "author": "Dominik Wojtowicz",

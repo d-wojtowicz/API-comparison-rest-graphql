@@ -1,18 +1,19 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootEnvPath = path.resolve(__dirname, '../../.env');
+
+dotenv.config({ path: rootEnvPath });
 
 // Server
 const SERVER_PORT = process.env.PORT_GQL || 4002;
 const SERVER_ENV = process.env.NODE_ENV || 'DEV';
 
 // Postgresql database
-const DB_PROTOCOL = process.env.DB_PROTOCOL || 'postgresql';
-const DB_USER = process.env.DB_USER || 'postgres';
-const DB_PASSWORD = process.env.DB_PASSWORD || 'admin';
-const DB_HOST = process.env.DB_HOST || 'localhost';
-const DB_PORT = process.env.DB_PORT || 5432;
-const DB_NAME = process.env.DB_NAME || 'postgres';
+const DB_URL = process.env.DATABASE_URL || 'postgresql://postgres:admin@localhost:5432/postgres';
 
 // Auth
 const JWT_SECRET = process.env.JWT_SECRET || '<insert-your-jwt-secret>';
@@ -26,15 +27,6 @@ const SERVER = {
   env: SERVER_ENV,
 };
 
-const DB_PSQL = {
-  protocol: DB_PROTOCOL,
-  user: DB_USER,
-  password: DB_PASSWORD,
-  host: DB_HOST,
-  port: DB_PORT,
-  name: DB_NAME,
-};
-
 const JWT = {
   secret: JWT_SECRET,
   expires_in: JWT_EXPIRES_IN,
@@ -43,7 +35,7 @@ const JWT = {
 // Combine
 const CONFIG = {
   server: SERVER,
-  db: DB_PSQL,
+  dbUrl: DB_URL,
   jwt: JWT,
   log: LOGGING,
 };

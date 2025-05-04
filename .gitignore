@@ -6,3 +6,8 @@ node_modules/
 
 # Development
 tmp/
+
+
+# Backend-GraphQL
+generated/
+generated/prisma/
