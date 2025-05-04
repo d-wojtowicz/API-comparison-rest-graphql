@@ -5,7 +5,7 @@ import CONFIG from './config/config.js';
 import { typeDefs, resolvers } from './graphql/index.js';
 import { verifyToken } from './utils/jwt.js';
 
-const NAMESPACE = CONFIG.server.env == 'PROD' ? 'SERVER' : 'Server.js';
+const NAMESPACE = CONFIG.server.env == 'PROD' ? 'SERVER' : 'server.js';
 const server = new ApolloServer({
   typeDefs,
   resolvers,
