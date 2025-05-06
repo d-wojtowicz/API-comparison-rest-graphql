@@ -18,7 +18,7 @@ cp .env.template .env
 
 Then fill in the required values accordingly.
 
-### 1. Install dependencies
+### 2. Install dependencies
 
 To install all dependencies for the entire monorepo:
 
@@ -32,7 +32,7 @@ To install dependencies for a specific workspace only (e.g., backend-graphql), r
 npm install -w backend-graphql
 ```
 
-### 2. Additional requirements
+### 3. Additional requirements
 
 If you're using the backend-graphql, firstly generate the Prisma client based on the current schema:
 
@@ -40,7 +40,7 @@ If you're using the backend-graphql, firstly generate the Prisma client based on
 npx prisma generate --schema=backend-graphql/db/schema.prisma
 ```
 
-### 3. Run a specific workspace
+### 4. Run a specific workspace
 
 Start a specific workspace using its name. For example, to start the GraphQL backend:
 

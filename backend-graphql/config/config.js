@@ -9,6 +9,7 @@ const rootEnvPath = path.resolve(__dirname, '../../.env');
 dotenv.config({ path: rootEnvPath });
 
 // Server
+const SERVER_HOST = process.env.HOST_GQL || 'localhost';
 const SERVER_PORT = process.env.PORT_GQL || 4002;
 const SERVER_ENV = process.env.NODE_ENV || 'DEV';
 
@@ -23,6 +24,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
 const LOGGING = process.env.LOG_LEVEL || 'info';
 
 const SERVER = {
+  host: SERVER_HOST,
   port: SERVER_PORT,
   env: SERVER_ENV,
 };
