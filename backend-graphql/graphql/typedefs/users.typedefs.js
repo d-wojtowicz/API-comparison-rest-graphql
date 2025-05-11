@@ -1,50 +1,65 @@
 import { gql } from 'graphql-tag';
 
 export const userTypeDefs = gql`
+  # User type with field-level permissions
   type User {
     user_id: ID!
     username: String!
     email: String!
-    password_hash: String!
-    created_at: DateTime
-    updated_at: DateTime
-    role: String
+    role: String! @auth(requires: ADMIN)
+    created_at: DateTime! @auth(requires: ADMIN)
+    updated_at: DateTime! @auth(requires: ADMIN)
+    password_hash: String! @auth(requires: SUPERADMIN)
   }
 
-  input CreateUserInput {
+  # Input types
+  input RegisterInput {
     username: String!
     email: String!
     password: String!
   }
 
-  input UpdateUserInput {
-    username: String
-    email: String
-    password: String
-    role: String
-  }
-
   input LoginInput {
-    email: String!
+    login: String!
     password: String!
   }
 
-  type AuthPayload {
-    user: User!
-    accessToken: String!
-    refreshToken: String
+  input ChangePasswordInput {
+    oldPassword: String!
+    newPassword: String!
   }
 
+  # Authentication types
+  type AuthPayload {
+    user: User!
+    accessToken: String! @auth(requires: SUPERADMIN)
+  }
+
+  # Queries
   extend type Query {
-    me: User
+    me: User @auth
     user(id: ID!): User
     users: [User!]!
   }
 
+  # Mutations
   extend type Mutation {
-    createUser(input: CreateUserInput!): User!
-    updateUser(id: ID!, input: UpdateUserInput!): User!
-    deleteUser(id: ID!): Boolean!
+    # Public mutations
+    register(input: RegisterInput!): User!
     login(input: LoginInput!): AuthPayload!
+    changePassword(input: ChangePasswordInput!): Boolean! @auth
+
+    # Admin only mutations
+    updateUserRole(id: ID!, role: String!): User! @auth(requires: ADMIN)
+    deleteUser(id: ID!): Boolean! @auth(requires: ADMIN)
+  }
+
+  # Custom directives for authorization
+  directive @auth(requires: Role = USER) on FIELD_DEFINITION
+
+  enum Role {
+    USER
+    ADMIN
+    SUPERADMIN
   }
 `;
