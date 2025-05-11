@@ -1,5 +1,6 @@
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
+import { makeExecutableSchema } from '@graphql-tools/schema';
 import express from 'express';
 
 import cors from 'cors';
@@ -9,6 +10,7 @@ import log from './config/logging.js';
 import CONFIG from './config/config.js';
 import { typeDefs, resolvers } from './graphql/index.js';
 import { verifyToken, validateToken } from './utils/jwt.js';
+import { authDirectiveTransformer } from './middleware/auth-directive.js';
 
 
 const NAMESPACE = CONFIG.server.env == 'PROD' ? 'SERVER' : 'server.js';
@@ -21,16 +23,14 @@ app.use(cors());
 app.use(json());
 
 // Create Apollo Server
-const server = new ApolloServer({
+const schema = makeExecutableSchema({
   typeDefs,
   resolvers,
-  formatError: (error) => {
-    return {
-      message: error.message,
-      code: error.extensions?.code || 'INTERNAL_SERVER_ERROR',
-      ...(CONFIG.server.env !== 'PROD' && { stack: error.stack })
-    };
-  }
+});
+const schemaWithDirectives = authDirectiveTransformer(schema);
+
+const server = new ApolloServer({
+  schema: schemaWithDirectives
 });
 
 // Start server
