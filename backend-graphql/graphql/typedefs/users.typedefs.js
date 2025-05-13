@@ -10,6 +10,13 @@ export const userTypeDefs = gql`
     created_at: DateTime! @auth(requires: ADMIN)
     updated_at: DateTime! @auth(requires: ADMIN)
     password_hash: String! @auth(requires: SUPERADMIN)
+
+    # Relationship fields
+    projects: [Project!]!
+    memberOf: [ProjectMember!]!
+    tasks: [Task!]!
+    notifications: [Notification!]!
+    comments: [TaskComment!]!
   }
 
   # Input types

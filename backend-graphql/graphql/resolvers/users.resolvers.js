@@ -4,8 +4,7 @@ import { signToken, verifyToken } from '../../utils/jwt.js';
 import log from '../../config/logging.js';
 import CONFIG from '../../config/config.js';
 
-const NAMESPACE =
-  CONFIG.server.env == 'PROD' ? 'USER-RESOLVER' : 'graphql/resolvers/users.resolvers.js';
+const NAMESPACE = CONFIG.server.env == 'PROD' ? 'USER-RESOLVER' : 'graphql/resolvers/users.resolvers.js';
 
 // Helper functions
 const isSelf = (user, targetUserId) => user?.userId === targetUserId;
@@ -180,4 +179,34 @@ export const userResolvers = {
       return true;
     },
   },
+  User: {
+    projects: (parent) => {
+      return prisma.projects.findMany({
+        where: { owner_id: parent.user_id }
+      });
+    },
+    memberOf: (parent) => {
+      return prisma.project_members.findMany({
+        where: { user_id: parent.user_id },
+        include: {
+          project: true
+        }
+      });
+    },
+    tasks: (parent) => {
+      return prisma.tasks.findMany({
+        where: { assignee_id: parent.user_id }
+      });
+    },
+    notifications: (parent) => {
+      return prisma.notifications.findMany({
+        where: { user_id: parent.user_id }
+      });
+    },
+    comments: (parent) => {
+      return prisma.task_comments.findMany({
+        where: { user_id: parent.user_id }
+      });
+    }
+  }
 };

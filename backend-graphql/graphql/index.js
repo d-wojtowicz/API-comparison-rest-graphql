@@ -1,7 +1,9 @@
 import { userTypeDefs } from './typedefs/users.typedefs.js';
+import { projectTypeDefs } from './typedefs/projects.typedefs.js';
 import { baseTypeDefs } from './typedefs/base.typedefs.js';
 import { userResolvers } from './resolvers/users.resolvers.js';
+import { projectResolvers } from './resolvers/projects.resolvers.js';
 import { mergeTypeDefs, mergeResolvers } from '@graphql-tools/merge';
 
-export const typeDefs = mergeTypeDefs([baseTypeDefs, userTypeDefs]);
-export const resolvers = mergeResolvers([userResolvers]);
+export const typeDefs = mergeTypeDefs([baseTypeDefs, userTypeDefs, projectTypeDefs]);
+export const resolvers = mergeResolvers([userResolvers, projectResolvers]);
