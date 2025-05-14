@@ -12,7 +12,7 @@ export const projectTypeDefs = gql`
     # Relationship fields
     owner: User!
     members: [ProjectMember!]!
-    tasks: [Task!]!
+    #tasks: [Task!]!
   }
 
   # Junction type for many-to-many relationship between Project and User

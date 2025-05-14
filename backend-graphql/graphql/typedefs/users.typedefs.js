@@ -14,9 +14,9 @@ export const userTypeDefs = gql`
     # Relationship fields
     projects: [Project!]!
     memberOf: [ProjectMember!]!
-    tasks: [Task!]!
-    notifications: [Notification!]!
-    comments: [TaskComment!]!
+    #tasks: [Task!]!
+    #notifications: [Notification!]!
+    #comments: [TaskComment!]!
   }
 
   # Input types
@@ -59,14 +59,5 @@ export const userTypeDefs = gql`
     # Admin only mutations
     updateUserRole(id: ID!, role: String!): User! @auth(requires: ADMIN)
     deleteUser(id: ID!): Boolean! @auth(requires: ADMIN)
-  }
-
-  # Custom directives for authorization
-  directive @auth(requires: Role = USER) on FIELD_DEFINITION
-
-  enum Role {
-    USER
-    ADMIN
-    SUPERADMIN
   }
 `;

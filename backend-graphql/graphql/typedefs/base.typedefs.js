@@ -10,4 +10,13 @@ export const baseTypeDefs = gql`
   }
 
   scalar DateTime
+
+  # Custom directives for authorization
+  directive @auth(requires: Role = USER) on FIELD_DEFINITION
+
+  enum Role {
+    USER
+    ADMIN
+    SUPERADMIN
+  }
 `; 

@@ -113,7 +113,10 @@ export const userResolvers = {
       const password_hash = await bcrypt.hash(newPassword, 10);
       await prisma.users.update({
         where: { user_id: user.userId },
-        data: { password_hash }
+        data: { 
+          password_hash,
+          updated_at: new Date()
+        }
       });
 
       log.info(NAMESPACE, 'changePassword: Password updated successfully');
@@ -148,7 +151,10 @@ export const userResolvers = {
 
       return prisma.users.update({
         where: { user_id: Number(id) },
-        data: { role }
+        data: { 
+          role,
+          updated_at: new Date()
+        }
       });
     },
     deleteUser: async (_, { id }, { user }) => {
@@ -193,20 +199,20 @@ export const userResolvers = {
         }
       });
     },
-    tasks: (parent) => {
-      return prisma.tasks.findMany({
-        where: { assignee_id: parent.user_id }
-      });
-    },
-    notifications: (parent) => {
-      return prisma.notifications.findMany({
-        where: { user_id: parent.user_id }
-      });
-    },
-    comments: (parent) => {
-      return prisma.task_comments.findMany({
-        where: { user_id: parent.user_id }
-      });
-    }
+    // tasks: (parent) => {
+    //   return prisma.tasks.findMany({
+    //     where: { assignee_id: parent.user_id }
+    //   });
+    // },
+    // notifications: (parent) => {
+    //   return prisma.notifications.findMany({
+    //     where: { user_id: parent.user_id }
+    //   });
+    // },
+    // comments: (parent) => {
+    //   return prisma.task_comments.findMany({
+    //     where: { user_id: parent.user_id }
+    //   });
+    // }
   }
 };

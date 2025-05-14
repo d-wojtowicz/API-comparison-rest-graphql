@@ -134,7 +134,10 @@ export const projectResolvers = {
 
       return prisma.projects.update({
         where: { project_id: Number(id) },
-        data: input,
+        data: {
+          ...input,
+          updated_at: new Date()
+        },
         include: {
           users: true
         }
