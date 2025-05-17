@@ -1,7 +1,38 @@
-import { userTypeDefs } from './typedefs/users.typedefs.js';
-import { baseTypeDefs } from './typedefs/base.typedefs.js';
-import { userResolvers } from './resolvers/users.resolvers.js';
 import { mergeTypeDefs, mergeResolvers } from '@graphql-tools/merge';
 
-export const typeDefs = mergeTypeDefs([baseTypeDefs, userTypeDefs]);
-export const resolvers = mergeResolvers([userResolvers]);
+import { attachmentResolvers } from './resolvers/attachments.resolvers.js';
+import { attachmentTypeDefs } from './typedefs/attachments.typedefs.js';
+import { baseTypeDefs } from './typedefs/base.typedefs.js';
+import { commentResolvers } from './resolvers/comments.resolvers.js';
+import { commentTypeDefs } from './typedefs/comments.typedefs.js';
+import { notificationResolvers } from './resolvers/notifications.resolvers.js';
+import { notificationTypeDefs } from './typedefs/notifications.typedefs.js';
+import { projectResolvers } from './resolvers/projects.resolvers.js';
+import { projectTypeDefs } from './typedefs/projects.typedefs.js';
+import { statusResolvers } from './resolvers/statuses.resolvers.js';
+import { statusTypeDefs } from './typedefs/statuses.typedefs.js';
+import { taskResolvers } from './resolvers/tasks.resolvers.js';
+import { taskTypeDefs } from './typedefs/tasks.typedefs.js';
+import { userResolvers } from './resolvers/users.resolvers.js';
+import { userTypeDefs } from './typedefs/users.typedefs.js';
+
+export const typeDefs = mergeTypeDefs([
+    attachmentTypeDefs,
+    baseTypeDefs,
+    commentTypeDefs,
+    notificationTypeDefs,
+    projectTypeDefs, 
+    statusTypeDefs, 
+    taskTypeDefs,
+    userTypeDefs
+]);
+
+export const resolvers = mergeResolvers([
+    attachmentResolvers,
+    commentResolvers,
+    notificationResolvers,
+    projectResolvers, 
+    statusResolvers, 
+    taskResolvers,
+    userResolvers
+]);

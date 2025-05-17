@@ -4,8 +4,7 @@ import { signToken, verifyToken } from '../../utils/jwt.js';
 import log from '../../config/logging.js';
 import CONFIG from '../../config/config.js';
 
-const NAMESPACE =
-  CONFIG.server.env == 'PROD' ? 'USER-RESOLVER' : 'graphql/resolvers/users.resolvers.js';
+const NAMESPACE = CONFIG.server.env == 'PROD' ? 'USER-RESOLVER' : 'graphql/resolvers/users.resolvers.js';
 
 // Helper functions
 const isSelf = (user, targetUserId) => user?.userId === targetUserId;
@@ -114,7 +113,10 @@ export const userResolvers = {
       const password_hash = await bcrypt.hash(newPassword, 10);
       await prisma.users.update({
         where: { user_id: user.userId },
-        data: { password_hash }
+        data: { 
+          password_hash,
+          updated_at: new Date()
+        }
       });
 
       log.info(NAMESPACE, 'changePassword: Password updated successfully');
@@ -149,7 +151,10 @@ export const userResolvers = {
 
       return prisma.users.update({
         where: { user_id: Number(id) },
-        data: { role }
+        data: { 
+          role,
+          updated_at: new Date()
+        }
       });
     },
     deleteUser: async (_, { id }, { user }) => {
@@ -180,4 +185,38 @@ export const userResolvers = {
       return true;
     },
   },
+  User: {
+    projects: (parent) => {
+      return prisma.projects.findMany({
+        where: { owner_id: parent.user_id }
+      });
+    },
+    memberOf: (parent) => {
+      return prisma.project_members.findMany({
+        where: { user_id: parent.user_id },
+        include: {
+          project: true
+        }
+      });
+    },
+    tasks: (parent) => {
+      return prisma.tasks.findMany({
+        where: { assignee_id: parent.user_id },
+        orderBy: { created_at: 'desc' }
+      });
+    },
+    // notifications: (parent) => {
+    //   return prisma.notifications.findMany({
+    //     where: { user_id: parent.user_id }
+    //   });
+    // },
+    comments: (parent) => {
+      return prisma.task_comments.findMany({
+        where: { user_id: parent.user_id },
+        orderBy: {
+          created_at: 'desc'
+        }
+      });
+    }
+  }
 };
