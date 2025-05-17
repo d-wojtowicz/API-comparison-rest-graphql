@@ -1,6 +1,8 @@
 import prisma from '../../db/client.js';
 import log from '../../config/logging.js';
 import CONFIG from '../../config/config.js';
+import { CONSTANTS } from '../../config/constants.js';
+import { notificationService } from '../../services/notification.service.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'COMMENT-RESOLVER' : 'graphql/resolvers/comments.resolvers.js';
 
@@ -51,7 +53,7 @@ export const commentResolvers = {
         throw new Error('Task not found');
       }
 
-      return prisma.task_comments.create({
+      const comment = await prisma.task_comments.create({
         data: {
           task_id: Number(task_id),
           user_id: user.userId,
@@ -62,6 +64,30 @@ export const commentResolvers = {
           users: true
         }
       });
+
+      // Get task and user details for notification
+      const [taskDetails, commenter] = await Promise.all([
+        prisma.tasks.findUnique({
+          where: { task_id: Number(task_id) }
+        }),
+        prisma.users.findUnique({
+          where: { user_id: user.userId }
+        })
+      ]);
+
+      // Notify task assignee about the new comment
+      if (taskDetails.assignee_id && taskDetails.assignee_id !== user.userId) {
+        await notificationService.createNotification(
+          taskDetails.assignee_id,
+          CONSTANTS.NOTIFICATIONS.TYPES.TASK.COMMENT_ADDED,
+          {
+            userName: commenter.username,
+            taskName: taskDetails.task_name
+          }
+        );
+      }
+
+      return comment;
     },
     updateTaskComment: async (_, { id, input }, { user }) => {
       if (!user) {

@@ -1,6 +1,8 @@
 import prisma from '../../db/client.js';
 import log from '../../config/logging.js';
 import CONFIG from '../../config/config.js';
+import { CONSTANTS } from '../../config/constants.js';
+import { notificationService } from '../../services/notification.service.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'ATTACHMENT-RESOLVER' : 'graphql/resolvers/attachments.resolvers.js';
 
@@ -49,7 +51,7 @@ export const attachmentResolvers = {
         throw new Error('Task not found');
       }
 
-      return prisma.task_attachments.create({
+      const attachment = await prisma.task_attachments.create({
         data: {
           task_id: Number(task_id),
           file_path
@@ -58,6 +60,30 @@ export const attachmentResolvers = {
           tasks: true
         }
       });
+
+      // Get task and user details for notification
+      const [taskDetails, uploader] = await Promise.all([
+        prisma.tasks.findUnique({
+          where: { task_id: Number(task_id) }
+        }),
+        prisma.users.findUnique({
+          where: { user_id: user.userId }
+        })
+      ]);
+
+      // Notify task assignee about the new attachment
+      if (taskDetails.assignee_id && taskDetails.assignee_id !== user.userId) {
+        await notificationService.createNotification(
+          taskDetails.assignee_id,
+          CONSTANTS.NOTIFICATIONS.TYPES.TASK.ATTACHMENT_ADDED,
+          {
+            userName: uploader.username,
+            taskName: taskDetails.task_name
+          }
+        );
+      }
+
+      return attachment;
     },
     updateTaskAttachment: async (_, { id, input }, { user }) => {
       if (!user) {

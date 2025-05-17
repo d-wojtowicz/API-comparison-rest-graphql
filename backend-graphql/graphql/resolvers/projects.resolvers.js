@@ -1,6 +1,8 @@
 import prisma from '../../db/client.js';
 import log from '../../config/logging.js';
 import CONFIG from '../../config/config.js';
+import { CONSTANTS } from '../../config/constants.js';
+import { notificationService } from '../../services/notification.service.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'PROJECT-RESOLVER' : 'graphql/resolvers/projects.resolvers.js';
 
@@ -101,7 +103,7 @@ export const projectResolvers = {
       }
 
       const { project_name, description } = input;
-      return prisma.projects.create({
+      const project = await prisma.projects.create({
         data: {
           project_name,
           description,
@@ -111,6 +113,17 @@ export const projectResolvers = {
           users: true
         }
       });
+
+      // Add owner as a project member
+      await prisma.project_members.create({
+        data: {
+          project_id: project.project_id,
+          user_id: user.userId,
+          role: 'owner'
+        }
+      });
+
+      return project;
     },
     updateProject: async (_, { id, input }, { user }) => {
       if (!user) {
@@ -132,7 +145,7 @@ export const projectResolvers = {
         throw new Error('Not authorized');
       }
 
-      return prisma.projects.update({
+      const updatedProject = await prisma.projects.update({
         where: { project_id: Number(id) },
         data: {
           ...input,
@@ -142,6 +155,15 @@ export const projectResolvers = {
           users: true
         }
       });
+
+      // Notify all project members about the update
+      await notificationService.notifyProjectMembers(
+        id,
+        CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.UPDATED,
+        { projectName: updatedProject.project_name }
+      );
+
+      return updatedProject;
     },
     deleteProject: async (_, { id }, { user }) => {
       if (!user) {
@@ -150,7 +172,10 @@ export const projectResolvers = {
       }
 
       const project = await prisma.projects.findUnique({
-        where: { project_id: Number(id) }
+        where: { project_id: Number(id) },
+        include: {
+          project_members: true
+        }
       });
 
       if (!project) {
@@ -163,21 +188,36 @@ export const projectResolvers = {
         throw new Error('Not authorized');
       }
 
+      // Get project details and members for notifications before deletion
+      const projectDetails = await prisma.projects.findUnique({
+        where: { project_id: Number(id) },
+        include: {
+          project_members: true
+        }
+      });
+
       await prisma.projects.delete({
         where: { project_id: Number(id) }
       });
 
+      // Notify all project members about deletion
+      const memberIds = projectDetails.project_members.map(member => member.user_id);
+      await notificationService.createNotifications(
+        memberIds,
+        CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.DELETED,
+        { projectName: projectDetails.project_name }
+      );
+
       return true;
     },
-    addProjectMember: async (_, { input }, { user }) => {
+    addProjectMember: async (_, { projectId, userId, role }, { user }) => {
       if (!user) {
         log.error(NAMESPACE, 'addProjectMember: User not authenticated');
         throw new Error('Not authenticated');
       }
 
-      const { project_id, user_id, role } = input;
       const project = await prisma.projects.findUnique({
-        where: { project_id: Number(project_id) }
+        where: { project_id: Number(projectId) }
       });
 
       if (!project) {
@@ -190,25 +230,36 @@ export const projectResolvers = {
         throw new Error('Not authorized');
       }
 
-      return prisma.project_members.create({
+      const member = await prisma.project_members.create({
         data: {
-          project_id: Number(project_id),
-          user_id: Number(user_id),
+          project_id: Number(projectId),
+          user_id: Number(userId),
           role
-        },
-        include: {
-          users: true
         }
       });
+
+      // Get project details for notification
+      const projectDetails = await prisma.projects.findUnique({
+        where: { project_id: Number(projectId) }
+      });
+
+      // Create notification for the new member
+      await notificationService.createNotification(
+        userId,
+        CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.ADDED_AS_MEMBER,
+        { projectName: projectDetails.project_name }
+      );
+
+      return member;
     },
-    removeProjectMember: async (_, { project_id, user_id }, { user }) => {
+    removeProjectMember: async (_, { projectId, userId }, { user }) => {
       if (!user) {
         log.error(NAMESPACE, 'removeProjectMember: User not authenticated');
         throw new Error('Not authenticated');
       }
 
       const project = await prisma.projects.findUnique({
-        where: { project_id: Number(project_id) }
+        where: { project_id: Number(projectId) }
       });
 
       if (!project) {
@@ -221,14 +272,26 @@ export const projectResolvers = {
         throw new Error('Not authorized');
       }
 
+      // Get project details for notification before deletion
+      const projectDetails = await prisma.projects.findUnique({
+        where: { project_id: Number(projectId) }
+      });
+
       await prisma.project_members.delete({
         where: {
           project_id_user_id: {
-            project_id: Number(project_id),
-            user_id: Number(user_id)
+            project_id: Number(projectId),
+            user_id: Number(userId)
           }
         }
       });
+
+      // Create notification for the removed member
+      await notificationService.createNotification(
+        userId,
+        CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.REMOVED_AS_MEMBER,
+        { projectName: projectDetails.project_name }
+      );
 
       return true;
     }
