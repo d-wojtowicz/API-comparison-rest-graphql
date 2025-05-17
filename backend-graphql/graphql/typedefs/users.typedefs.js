@@ -14,9 +14,9 @@ export const userTypeDefs = gql`
     # Relationship fields
     projects: [Project!]!
     memberOf: [ProjectMember!]!
-    #tasks: [Task!]!
+    tasks: [Task!]!
     #notifications: [Notification!]!
-    #comments: [TaskComment!]!
+    comments: [TaskComment!]!
   }
 
   # Input types
