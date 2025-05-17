@@ -3,6 +3,8 @@ import { mergeTypeDefs, mergeResolvers } from '@graphql-tools/merge';
 import { attachmentResolvers } from './resolvers/attachments.resolvers.js';
 import { attachmentTypeDefs } from './typedefs/attachments.typedefs.js';
 import { baseTypeDefs } from './typedefs/base.typedefs.js';
+import { commentResolvers } from './resolvers/comments.resolvers.js';
+import { commentTypeDefs } from './typedefs/comments.typedefs.js';
 import { projectResolvers } from './resolvers/projects.resolvers.js';
 import { projectTypeDefs } from './typedefs/projects.typedefs.js';
 import { statusResolvers } from './resolvers/statuses.resolvers.js';
@@ -14,7 +16,8 @@ import { userTypeDefs } from './typedefs/users.typedefs.js';
 
 export const typeDefs = mergeTypeDefs([
     attachmentTypeDefs,
-    baseTypeDefs, 
+    baseTypeDefs,
+    commentTypeDefs,
     projectTypeDefs, 
     statusTypeDefs, 
     taskTypeDefs,
@@ -23,6 +26,7 @@ export const typeDefs = mergeTypeDefs([
 
 export const resolvers = mergeResolvers([
     attachmentResolvers,
+    commentResolvers,
     projectResolvers, 
     statusResolvers, 
     taskResolvers,

@@ -23,9 +23,9 @@ export const statusResolvers = {
 		}
 	},
 	Mutation: {
-		createTaskStatus: async (_, { input }, { user }) => {
+		createStatus: async (_, { input }, { user }) => {
 			if (!user) {
-				log.error(NAMESPACE, 'createTaskStatus: User not authenticated');
+				log.error(NAMESPACE, 'createStatus: User not authenticated');
 				throw new Error('Not authenticated');
 			}
 
@@ -37,7 +37,7 @@ export const statusResolvers = {
 			});
 
 			if (existingStatus) {
-				log.error(NAMESPACE, 'createTaskStatus: Status with this name already exists');
+				log.error(NAMESPACE, 'createStatus: Status with this name already exists');
 				throw new Error('Status with this name already exists');
 			}
 
@@ -50,9 +50,9 @@ export const statusResolvers = {
 				}
 			});
 		},
-		updateTaskStatus: async (_, { id, input }, { user }) => {
+		updateStatus: async (_, { id, input }, { user }) => {
 			if (!user) {
-				log.error(NAMESPACE, 'updateTaskStatus: User not authenticated');
+				log.error(NAMESPACE, 'updateStatus: User not authenticated');
 				throw new Error('Not authenticated');
 			}
 
@@ -61,7 +61,7 @@ export const statusResolvers = {
 			});
 
 			if (!status) {
-				log.error(NAMESPACE, 'updateTaskStatus: Status not found');
+				log.error(NAMESPACE, 'updateStatus: Status not found');
 				throw new Error('Status not found');
 			}
 
@@ -78,7 +78,7 @@ export const statusResolvers = {
 			});
 
 			if (existingStatus) {
-				log.error(NAMESPACE, 'updateTaskStatus: Status with this name already exists');
+				log.error(NAMESPACE, 'updateStatus: Status with this name already exists');
 				throw new Error('Status with this name already exists');
 			}
 
@@ -92,9 +92,9 @@ export const statusResolvers = {
 				}
 			});
 		},
-		deleteTaskStatus: async (_, { id }, { user }) => {
+		deleteStatus: async (_, { id }, { user }) => {
 			if (!user) {
-				log.error(NAMESPACE, 'deleteTaskStatus: User not authenticated');
+				log.error(NAMESPACE, 'deleteStatus: User not authenticated');
 				throw new Error('Not authenticated');
 			}
 
@@ -103,7 +103,7 @@ export const statusResolvers = {
 			});
 
 			if (!status) {
-				log.error(NAMESPACE, 'deleteTaskStatus: Status not found');
+				log.error(NAMESPACE, 'deleteStatus: Status not found');
 				throw new Error('Status not found');
 			}
 
@@ -113,7 +113,7 @@ export const statusResolvers = {
 			});
 
 			if (tasksWithStatus.length > 0) {
-				log.error(NAMESPACE, 'deleteTaskStatus: Cannot delete status that is being used by tasks');
+				log.error(NAMESPACE, 'deleteStatus: Cannot delete status that is being used by tasks');
 				throw new Error('Cannot delete status that is being used by tasks');
 			}
 

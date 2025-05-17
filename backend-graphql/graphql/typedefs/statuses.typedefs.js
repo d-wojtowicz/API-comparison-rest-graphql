@@ -7,11 +7,11 @@ export const statusTypeDefs = gql`
     tasks: [Task!]!
   }
 
-  input CreateTaskStatusInput {
+  input CreateStatusInput {
     status_name: String!
   }
 
-  input UpdateTaskStatusInput {
+  input UpdateStatusInput {
     status_name: String!
   }
 
@@ -21,8 +21,8 @@ export const statusTypeDefs = gql`
   }
 
   extend type Mutation {
-    createTaskStatus(input: CreateTaskStatusInput!): TaskStatus! @auth(requires: SUPERADMIN)
-    updateTaskStatus(id: ID!, input: UpdateTaskStatusInput!): TaskStatus! @auth(requires: SUPERADMIN)
-    deleteTaskStatus(id: ID!): Boolean! @auth(requires: SUPERADMIN)
+    createStatus(input: CreateStatusInput!): TaskStatus! @auth(requires: SUPERADMIN)
+    updateStatus(id: ID!, input: UpdateStatusInput!): TaskStatus! @auth(requires: SUPERADMIN)
+    deleteStatus(id: ID!): Boolean! @auth(requires: SUPERADMIN)
   }
 `; 
