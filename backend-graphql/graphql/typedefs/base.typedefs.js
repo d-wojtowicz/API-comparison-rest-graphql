@@ -9,6 +9,10 @@ export const baseTypeDefs = gql`
     _empty: String
   }
 
+  type Subscription {
+    _empty: String
+  }
+
   scalar DateTime
 
   # Custom directives for authorization

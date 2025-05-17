@@ -1,0 +1,11 @@
+// Notification events
+const NOTIFICATIONS = {
+  CREATED: 'NOTIFICATION_CREATED',
+  UPDATED: 'NOTIFICATION_UPDATED',
+};
+
+const CONSTANTS = {
+  NOTIFICATIONS,
+};
+
+export { CONSTANTS };
