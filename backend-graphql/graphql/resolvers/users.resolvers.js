@@ -199,11 +199,12 @@ export const userResolvers = {
         }
       });
     },
-    // tasks: (parent) => {
-    //   return prisma.tasks.findMany({
-    //     where: { assignee_id: parent.user_id }
-    //   });
-    // },
+    tasks: (parent) => {
+      return prisma.tasks.findMany({
+        where: { assignee_id: parent.user_id },
+        orderBy: { created_at: 'desc' }
+      });
+    },
     // notifications: (parent) => {
     //   return prisma.notifications.findMany({
     //     where: { user_id: parent.user_id }

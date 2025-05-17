@@ -246,6 +246,12 @@ export const projectResolvers = {
           users: true
         }
       });
+    },
+    tasks: (parent) => {
+      return prisma.tasks.findMany({
+        where: { project_id: parent.project_id },
+        orderBy: { created_at: 'desc' }
+      });
     }
   },
   ProjectMember: {
