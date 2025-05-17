@@ -209,10 +209,13 @@ export const userResolvers = {
     //     where: { user_id: parent.user_id }
     //   });
     // },
-    // comments: (parent) => {
-    //   return prisma.task_comments.findMany({
-    //     where: { user_id: parent.user_id }
-    //   });
-    // }
+    comments: (parent) => {
+      return prisma.task_comments.findMany({
+        where: { user_id: parent.user_id },
+        orderBy: {
+          created_at: 'desc'
+        }
+      });
+    }
   }
 };

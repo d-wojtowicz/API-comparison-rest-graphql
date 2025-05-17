@@ -20,6 +20,7 @@ export const projectTypeDefs = gql`
     project_id: ID!
     user_id: ID!
     role: String
+    
     # Relationship fields to fetch full project and user data
     project: Project!
     user: User!

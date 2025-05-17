@@ -6,6 +6,8 @@ export const attachmentTypeDefs = gql`
     task_id: ID!
     file_path: String!
     uploaded_at: DateTime!
+
+    # Relationship fields
     task: Task!
   }
 
