@@ -188,24 +188,17 @@ export const projectResolvers = {
         throw new Error('Not authorized');
       }
 
-      // Get project details and members for notifications before deletion
-      const projectDetails = await prisma.projects.findUnique({
-        where: { project_id: Number(id) },
-        include: {
-          project_members: true
-        }
-      });
-
+      // Delete project (project_members will be automatically deleted due to cascade)
       await prisma.projects.delete({
         where: { project_id: Number(id) }
       });
 
-      // Notify all project members about deletion
-      const memberIds = projectDetails.project_members.map(member => member.user_id);
+      // Notify all project members about deletion using the already fetched project data
+      const memberIds = project.project_members.map(member => member.user_id);
       await notificationService.createNotifications(
         memberIds,
         CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.DELETED,
-        { projectName: projectDetails.project_name }
+        { projectName: project.project_name }
       );
 
       return true;
@@ -238,16 +231,11 @@ export const projectResolvers = {
         }
       });
 
-      // Get project details for notification
-      const projectDetails = await prisma.projects.findUnique({
-        where: { project_id: Number(projectId) }
-      });
-
-      // Create notification for the new member
+      // Create notification for the new member using the already fetched project data
       await notificationService.createNotification(
         userId,
         CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.ADDED_AS_MEMBER,
-        { projectName: projectDetails.project_name }
+        { projectName: project.project_name }
       );
 
       return member;
@@ -272,11 +260,6 @@ export const projectResolvers = {
         throw new Error('Not authorized');
       }
 
-      // Get project details for notification before deletion
-      const projectDetails = await prisma.projects.findUnique({
-        where: { project_id: Number(projectId) }
-      });
-
       await prisma.project_members.delete({
         where: {
           project_id_user_id: {
@@ -286,11 +269,11 @@ export const projectResolvers = {
         }
       });
 
-      // Create notification for the removed member
+      // Create notification for the removed member using the already fetched project data
       await notificationService.createNotification(
         userId,
         CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.REMOVED_AS_MEMBER,
-        { projectName: projectDetails.project_name }
+        { projectName: project.project_name }
       );
 
       return true;
