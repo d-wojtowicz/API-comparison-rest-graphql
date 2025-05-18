@@ -21,9 +21,9 @@ export const attachmentTypeDefs = gql`
   }
 
   extend type Query {
-    taskAttachment(id: ID!): TaskAttachment
-    taskAttachments: [TaskAttachment!]!
-    taskAttachmentsByTask(taskId: ID!): [TaskAttachment!]!
+    taskAttachment(id: ID!): TaskAttachment @auth
+    taskAttachments: [TaskAttachment!]! @auth
+    taskAttachmentsByTask(taskId: ID!): [TaskAttachment!]! @auth
   }
 
   extend type Mutation {

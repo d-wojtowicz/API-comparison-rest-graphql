@@ -6,32 +6,122 @@ import { notificationService } from '../../services/notification.service.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'ATTACHMENT-RESOLVER' : 'graphql/resolvers/attachments.resolvers.js';
 
+// Helper functions
+const isSuperAdmin = (user) => user?.role === 'superadmin';
+const isAdmin = (user) => user?.role === 'admin' || isSuperAdmin(user);
+const hasTaskAccess = async (user, taskId) => {
+  if (!user) return false;
+
+  const task = await prisma.tasks.findUnique({
+    where: { task_id: Number(taskId) },
+    include: {
+      projects: {
+        include: {
+          project_members: true
+        }
+      }
+    }
+  });
+
+  if (!task) return false;
+
+  // Check if user is project member or task assignee
+  return task.assignee_id === user.userId ||
+         task.projects.project_members.some(member => member.user_id === user.userId);
+};
+
 export const attachmentResolvers = {
   Query: {
-    taskAttachment: async (_, { id }) => {
-      return prisma.task_attachments.findUnique({
+    taskAttachment: async (_, { id }, { user }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'taskAttachment: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      const attachment = await prisma.task_attachments.findUnique({
         where: { attachment_id: Number(id) },
-        include: {
-          tasks: true
-        }
+        include: { tasks: true }
       });
+
+      if (!attachment) {
+        log.error(NAMESPACE, 'taskAttachment: Attachment not found');
+        throw new Error('Attachment not found');
+      }
+
+      if (!await hasTaskAccess(user, attachment.task_id) && !isAdmin(user)) {
+        log.error(NAMESPACE, 'taskAttachment: User not authorized to view this attachment');
+        throw new Error('Not authorized to view this attachment');
+      }
+
+      return attachment;
     },
-    taskAttachments: async () => {
-      return prisma.task_attachments.findMany({
-        include: {
-          tasks: true
+
+    taskAttachments: async (_, __, { user }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'taskAttachments: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      // For admin/superadmin, return all attachments
+      if (isAdmin(user)) {
+        const attachments = await prisma.task_attachments.findMany({
+          include: { tasks: true }
+        });
+
+        if (!attachments) {
+          log.error(NAMESPACE, 'taskAttachments: Attachments not found');
+          throw new Error('Attachments not found');
         }
-      });
+
+        return attachments;
+      }
+      // For regular users, only return attachments from tasks in their projects
+      else {
+        const attachments = await prisma.task_attachments.findMany({
+          where: {
+            tasks: {
+              projects: {
+                OR: [
+                  { owner_id: user.userId },
+                  {
+                    project_members: {
+                      some: { user_id: user.userId }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          include: { tasks: true }
+        });
+
+        if (!attachments) {
+          log.error(NAMESPACE, 'taskAttachments: Attachments not found');
+          throw new Error('Attachments not found');
+        }
+
+        return attachments;
+      }
     },
-    taskAttachmentsByTask: async (_, { taskId }) => {
+
+    taskAttachmentsByTask: async (_, { taskId }, { user }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'taskAttachmentsByTask: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      if (!await hasTaskAccess(user, taskId) && !isAdmin(user)) {
+        log.error(NAMESPACE, 'taskAttachmentsByTask: User not authorized to view these attachments');
+        throw new Error('Not authorized to view these attachments');
+      }
+
       return prisma.task_attachments.findMany({
         where: { task_id: Number(taskId) },
-        include: {
-          tasks: true
-        }
+        include: { tasks: true }
       });
     }
   },
+
   Mutation: {
     createTaskAttachment: async (_, { input }, { user }) => {
       if (!user) {
@@ -41,14 +131,9 @@ export const attachmentResolvers = {
 
       const { task_id, file_path } = input;
 
-      // Verify that the task exists
-      const task = await prisma.tasks.findUnique({
-        where: { task_id: Number(task_id) }
-      });
-
-      if (!task) {
-        log.error(NAMESPACE, 'createTaskAttachment: Task not found');
-        throw new Error('Task not found');
+      if (!await hasTaskAccess(user, task_id) && !isAdmin(user)) {
+        log.error(NAMESPACE, 'createTaskAttachment: User not authorized to add attachments to this task');
+        throw new Error('Not authorized to add attachments to this task');
       }
 
       const attachment = await prisma.task_attachments.create({
@@ -56,9 +141,7 @@ export const attachmentResolvers = {
           task_id: Number(task_id),
           file_path
         },
-        include: {
-          tasks: true
-        }
+        include: { tasks: true }
       });
 
       // Get task and user details for notification
@@ -85,6 +168,7 @@ export const attachmentResolvers = {
 
       return attachment;
     },
+
     updateTaskAttachment: async (_, { id, input }, { user }) => {
       if (!user) {
         log.error(NAMESPACE, 'updateTaskAttachment: User not authenticated');
@@ -92,7 +176,8 @@ export const attachmentResolvers = {
       }
 
       const attachment = await prisma.task_attachments.findUnique({
-        where: { attachment_id: Number(id) }
+        where: { attachment_id: Number(id) },
+        include: { tasks: true }
       });
 
       if (!attachment) {
@@ -100,18 +185,20 @@ export const attachmentResolvers = {
         throw new Error('Attachment not found');
       }
 
-      const { file_path } = input;
+      if (!await hasTaskAccess(user, attachment.task_id) && !isAdmin(user)) {
+        log.error(NAMESPACE, 'updateTaskAttachment: User not authorized to update this attachment');
+        throw new Error('Not authorized to update this attachment');
+      }
 
       return prisma.task_attachments.update({
         where: { attachment_id: Number(id) },
         data: {
-          file_path,
+          file_path: input.file_path,
         },
-        include: {
-          tasks: true
-        }
+        include: { tasks: true }
       });
     },
+
     deleteTaskAttachment: async (_, { id }, { user }) => {
       if (!user) {
         log.error(NAMESPACE, 'deleteTaskAttachment: User not authenticated');
@@ -119,12 +206,18 @@ export const attachmentResolvers = {
       }
 
       const attachment = await prisma.task_attachments.findUnique({
-        where: { attachment_id: Number(id) }
+        where: { attachment_id: Number(id) },
+        include: { tasks: true }
       });
 
       if (!attachment) {
         log.error(NAMESPACE, 'deleteTaskAttachment: Attachment not found');
         throw new Error('Attachment not found');
+      }
+
+      if (!await hasTaskAccess(user, attachment.task_id) && !isAdmin(user)) {
+        log.error(NAMESPACE, 'deleteTaskAttachment: User not authorized to delete this attachment');
+        throw new Error('Not authorized to delete this attachment');
       }
 
       await prisma.task_attachments.delete({
@@ -134,6 +227,7 @@ export const attachmentResolvers = {
       return true;
     }
   },
+
   TaskAttachment: {
     task: (parent) => {
       return prisma.tasks.findUnique({

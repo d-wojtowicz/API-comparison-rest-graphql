@@ -15,7 +15,7 @@ export const userTypeDefs = gql`
     projects: [Project!]!
     memberOf: [ProjectMember!]!
     tasks: [Task!]!
-    #notifications: [Notification!]!
+    notifications: [Notification!]!
     comments: [TaskComment!]!
   }
 
