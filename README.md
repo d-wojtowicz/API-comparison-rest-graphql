@@ -1,6 +1,23 @@
 # API-comparison-rest-graphql
 
-Master - Thesis
+## 📊 Project Overview
+
+This project is a comprehensive comparison between REST and GraphQL APIs, implemented as part of my Master's Thesis. The application demonstrates practical differences, performance characteristics, and implementation approaches of both API paradigms.
+
+### Key Features
+- Dual API implementation (REST & GraphQL) for the same functionality
+- Performance benchmarking and analysis
+- Modern tech stack implementation
+- Real-world use case demonstration
+
+### Technical Architecture
+![Schemat bazy danych wersja 2 - 2025-05-18 162940](https://github.com/user-attachments/assets/c8095da4-2a58-4183-9b84-8d09fe77ecaa)
+*Database schema visualization showing the core data model*
+
+### Implementation Highlights
+- [To be added: Screenshots of the application]
+- [To be added: Performance comparison results]
+- [To be added: Key technical challenges and solutions]
 
 ## ⚙️ Programme Preparation Manual (ENG)
 
