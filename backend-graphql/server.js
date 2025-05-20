@@ -11,6 +11,7 @@ import CONFIG from './config/config.js';
 import { typeDefs, resolvers } from './graphql/index.js';
 import { verifyToken, validateToken } from './utils/jwt.js';
 import { authDirectiveTransformer } from './middleware/auth-directive.js';
+import { createLoaders } from './graphql/dataloaders.js';
 
 
 const NAMESPACE = CONFIG.server.env == 'PROD' ? 'SERVER' : 'server.js';
@@ -47,23 +48,23 @@ async function startServer() {
           
           if (!validateToken(auth)) {
             log.warn(NAMESPACE, 'Token failed validation');
-            return { user: null };
+            return { user: null, loaders: createLoaders() };
           } 
           else {
             const token = auth.slice(7).trim();
             const user = await verifyToken(token);
             if (!user) {
               log.error(NAMESPACE, 'Invalid JWT token');
-              return { user: null };
+              return { user: null, loaders: createLoaders() };
             }
             else {
               log.info(NAMESPACE, 'Successful user authorization');
-              return { user };
+              return { user, loaders: createLoaders() };
             }
           }
         } catch (err) {
           log.error(NAMESPACE, `Authorization error: ${err.message}`);
-          return { user: null };
+          return { user: null, loaders: createLoaders() };
         }
       }
     })

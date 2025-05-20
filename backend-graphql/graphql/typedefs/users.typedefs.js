@@ -45,8 +45,8 @@ export const userTypeDefs = gql`
   # Queries
   extend type Query {
     me: User @auth
-    user(id: ID!): User
-    users: [User!]!
+    user(id: ID!): User @auth
+    users: [User!]! @auth(requires: ADMIN)
   }
 
   # Mutations

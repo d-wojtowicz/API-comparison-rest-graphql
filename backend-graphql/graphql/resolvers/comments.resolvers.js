@@ -12,30 +12,44 @@ const isSuperAdmin = (user) => user?.role === 'superadmin';
 
 export const commentResolvers = {
   Query: {
-    taskComment: async (_, { id }) => {
-      return prisma.task_comments.findUnique({
-        where: { comment_id: Number(id) },
-        include: {
-          tasks: true,
-          users: true
-        }
-      });
+    taskComment: async (_, { id }, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'taskComment: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      const comment = await loaders.commentLoader.load(Number(id));
+
+      if (!comment) {
+        log.error(NAMESPACE, 'taskComment: Comment not found');
+        throw new Error('Comment not found');
+      }
+
+      if (!await hasTaskAccess(user, comment.task_id, loaders) && !isAdmin(user)) {
+        log.error(NAMESPACE, 'taskComment: User not authorized to view this comment');
+        throw new Error('Not authorized to view this comment');
+      }
+
+      return comment;
     },
-    taskComments: async (_, { taskId }) => {
-      return prisma.task_comments.findMany({
-        where: { task_id: Number(taskId) },
-        include: {
-          tasks: true,
-          users: true
-        },
-        orderBy: {
-          created_at: 'desc'
-        }
-      });
+    taskComments: async (_, { taskId }, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'taskComments: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      const taskComments = await loaders.taskCommentsLoader.load(Number(taskId));
+      
+      if (!await hasTaskAccess(user, taskComments.task_id, loaders) && !isAdmin(user)) {
+        log.error(NAMESPACE, 'taskComments: User not authorized to view this task comments');
+        throw new Error('Not authorized to view this task comments');
+      }
+
+      return taskComments;
     }
   },
   Mutation: {
-    createTaskComment: async (_, { input }, { user }) => {
+    createTaskComment: async (_, { input }, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'createTaskComment: User not authenticated');
         throw new Error('Not authenticated');
@@ -44,10 +58,7 @@ export const commentResolvers = {
       const { task_id, comment_text } = input;
 
       // Check if task exists
-      const task = await prisma.tasks.findUnique({
-        where: { task_id: Number(task_id) }
-      });
-
+      const task = await loaders.taskLoader.load(Number(task_id));
       if (!task) {
         log.error(NAMESPACE, 'createTaskComment: Task not found');
         throw new Error('Task not found');
@@ -58,21 +69,13 @@ export const commentResolvers = {
           task_id: Number(task_id),
           user_id: user.userId,
           comment_text
-        },
-        include: {
-          tasks: true,
-          users: true
         }
       });
 
       // Get task and user details for notification
       const [taskDetails, commenter] = await Promise.all([
-        prisma.tasks.findUnique({
-          where: { task_id: Number(task_id) }
-        }),
-        prisma.users.findUnique({
-          where: { user_id: user.userId }
-        })
+        loaders.taskLoader.load(Number(task_id)),
+        loaders.userLoader.load(user.userId)
       ]);
 
       // Notify task assignee about the new comment
@@ -89,16 +92,13 @@ export const commentResolvers = {
 
       return comment;
     },
-    updateTaskComment: async (_, { id, input }, { user }) => {
+    updateTaskComment: async (_, { id, input }, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'updateTaskComment: User not authenticated');
         throw new Error('Not authenticated');
       }
 
-      const comment = await prisma.task_comments.findUnique({
-        where: { comment_id: Number(id) }
-      });
-
+      const comment = await loaders.commentLoader.load(Number(id));
       if (!comment) {
         log.error(NAMESPACE, 'updateTaskComment: Comment not found');
         throw new Error('Comment not found');
@@ -116,23 +116,16 @@ export const commentResolvers = {
         data: {
           comment_text,
           updated_at: new Date()
-        },
-        include: {
-          tasks: true,
-          users: true
         }
       });
     },
-    deleteTaskComment: async (_, { id }, { user }) => {
+    deleteTaskComment: async (_, { id }, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'deleteTaskComment: User not authenticated');
         throw new Error('Not authenticated');
       }
 
-      const comment = await prisma.task_comments.findUnique({
-        where: { comment_id: Number(id) }
-      });
-
+      const comment = await loaders.commentLoader.load(Number(id));
       if (!comment) {
         log.error(NAMESPACE, 'deleteTaskComment: Comment not found');
         throw new Error('Comment not found');
@@ -151,15 +144,11 @@ export const commentResolvers = {
     }
   },
   TaskComment: {
-    task: (parent) => {
-      return prisma.tasks.findUnique({
-        where: { task_id: parent.task_id }
-      });
+    task: (parent, _, { loaders }) => {
+      return loaders.taskLoader.load(parent.task_id);
     },
-    user: (parent) => {
-      return prisma.users.findUnique({
-        where: { user_id: parent.user_id }
-      });
+    user: (parent, _, { loaders }) => {
+      return loaders.userLoader.load(parent.user_id);
     }
   }
 }; 

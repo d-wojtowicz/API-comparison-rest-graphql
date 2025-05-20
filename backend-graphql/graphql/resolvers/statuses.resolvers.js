@@ -7,136 +7,42 @@ const NAMESPACE = CONFIG.server.env === 'PROD' ? 'STATUS-RESOLVER' : 'graphql/re
 // Helper functions
 const isSuperAdmin = (user) => user?.role === 'superadmin';
 const isAdmin = (user) => user?.role === 'admin' || isSuperAdmin(user);
-const getUserAccessibleTasks = async (userId) => {
-	// Get all projects where user is a member
-	const userProjects = await prisma.project_members.findMany({
-		where: { user_id: userId },
-		select: { project_id: true }
-	});
-
-	// Get all projects where user is an owner
-	const ownedProjects = await prisma.projects.findMany({
-		where: { owner_id: userId },
-		select: { project_id: true }
-	});
-
-	// Combine project IDs
-	const projectIds = [
-		...userProjects.map(p => p.project_id),
-		...ownedProjects.map(p => p.project_id)
-	];
-
-	// Return tasks from these projects
-	return prisma.tasks.findMany({
-		where: {
-			project_id: { in: projectIds }
-		}
-	});
-};
 
 export const statusResolvers = {
 	Query: {
-		taskStatus: async (_, { id }, { user }) => {
+		taskStatus: async (_, { id }, { user, loaders }) => {
 			if (!user) {
 				log.error(NAMESPACE, 'taskStatus: User not authenticated');
 				throw new Error('Not authenticated');
 			}
 
-			// For admin/superadmin, return all data
-			if (isAdmin(user)) {
-				const status = await prisma.task_statuses.findUnique({
-					where: { status_id: Number(id) },
-					include: {
-						tasks: true
-					}
-				});
+			const status = await loaders.statusLoader.load(Number(id));
 
-				if (!status) {
-					log.error(NAMESPACE, 'taskStatus: Status not found');
-					throw new Error('Status not found');
-				}
-
-				return status;
-			} 
-			// For regular users, only return the status with tasks they have access to
-			else {
-				const status = await prisma.task_statuses.findUnique({
-					where: { status_id: Number(id) },
-					include: {
-						tasks: {
-							where: {
-								projects: {
-									OR: [
-										{ owner_id: user.userId },
-										{
-											project_members: {
-												some: { user_id: user.userId }
-											}
-										}
-									]
-								}
-							}
-						}
-					}
-				});
-
-				if (!status) {
-					log.error(NAMESPACE, 'taskStatus: Status not found');
-					throw new Error('Status not found');
-				}
-
-				return status;
+			if (!status) {
+				log.error(NAMESPACE, 'taskStatus: Status not found');
+				throw new Error('Status not found');
 			}
+
+			if (!await hasTaskAccess(user, status.task_id, loaders) && !isAdmin(user)) {
+				log.error(NAMESPACE, 'taskStatus: User not authorized to view this status');
+				throw new Error('Not authorized to view this status');
+			}
+
+			return status;
 		},
-		taskStatuses: async (_, __, { user }) => {
+		// ADMIN ONLY
+		taskStatuses: async (_, __, { user, loaders }) => {
 			if (!user) {
 				log.error(NAMESPACE, 'taskStatuses: User not authenticated');
 				throw new Error('Not authenticated');
 			}
 
-			// For admin/superadmin, return all data
-			if (isAdmin(user)) {
-				const statuses = await prisma.task_statuses.findMany({
-					include: {
-						tasks: true
-					}
-				});
-
-				if (!statuses) {
-					log.error(NAMESPACE, 'taskStatuses: Statuses not found');
-					throw new Error('Statuses not found');
-				}
-
-				return statuses;
+			if (!isAdmin(user)) {
+				log.error(NAMESPACE, 'taskStatuses: User not authorized to view statuses');
+				throw new Error('Not authorized to view statuses');
 			}
-			// For regular users, only return statuses with tasks they have access to
-			else {
-				const statuses = await prisma.task_statuses.findMany({
-					include: {
-						tasks: {
-							where: {
-								projects: {
-									OR: [
-										{ owner_id: user.userId },
-										{
-											project_members: {
-												some: { user_id: user.userId }
-											}
-										}
-									]
-								}
-							}
-						}
-					}
-				});
 
-				if (!statuses) {
-					log.error(NAMESPACE, 'taskStatuses: Statuses not found');
-					throw new Error('Statuses not found');
-				}
-
-				return statuses;
-			}
+			return prisma.task_statuses.findMany();
 		}
 	},
 	Mutation: {
@@ -166,9 +72,6 @@ export const statusResolvers = {
 			return prisma.task_statuses.create({
 				data: {
 					status_name
-				},
-				include: {
-					tasks: true
 				}
 			});
 		},
@@ -213,9 +116,6 @@ export const statusResolvers = {
 				where: { status_id: Number(id) },
 				data: {
 					status_name
-				},
-				include: {
-					tasks: true
 				}
 			});
 		},
@@ -255,5 +155,25 @@ export const statusResolvers = {
 
 			return true;
 		}
+	},
+	TaskStatus: {
+		tasks: async (parent, _, { user, loaders }) => {
+			if (!user) {
+				log.error(NAMESPACE, 'tasks: User not authenticated');
+				throw new Error('Not authenticated');
+			}
+
+			const tasks = await loaders.tasksByStatusLoader.load(parent.status_id);
+			if (!tasks.length) return [];
+			
+			// For admin/superadmin, return all tasks
+			if (isAdmin(user)) return tasks;
+			
+			// For regular users, filter tasks based on project access
+			const taskIds = tasks.map(task => task.task_id);
+			const tasksWithAccess = await loaders.tasksWithProjectAccessLoader(user.userId).load(taskIds);
+
+			return tasksWithAccess.filter(task => task !== null);
+		}
 	}
-}
+};

@@ -20,12 +20,32 @@ export const userResolvers = {
       }
       return prisma.users.findUnique({ where: { user_id: user.userId } });
     },
-    user: async (_, { id }) => {
-      return prisma.users.findUnique({ 
-        where: { user_id: Number(id) }
-      });
+    user: async (_, { id }, { user }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'user: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      const targetUser = await loaders.userLoader.load(Number(id));
+
+      if (!targetUser) {
+        log.error(NAMESPACE, 'user: User not found');
+        throw new Error('User not found');
+      }
+
+      return targetUser;
     },
-    users: async () => {
+    users: async (_, __, { user }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'users: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      if (!isAdmin(user)) {
+        log.error(NAMESPACE, 'users: User not authorized');
+        throw new Error('Not authorized');
+      }
+
       return prisma.users.findMany();
     },
   },
@@ -186,37 +206,20 @@ export const userResolvers = {
     },
   },
   User: {
-    projects: (parent) => {
-      return prisma.projects.findMany({
-        where: { owner_id: parent.user_id }
-      });
+    projects: (parent, _, { loaders }) => {
+      return loaders.projectsByUserLoader.load(parent.user_id);
     },
-    memberOf: (parent) => {
-      return prisma.project_members.findMany({
-        where: { user_id: parent.user_id },
-        include: {
-          project: true
-        }
-      });
+    memberOf: (parent, _, { loaders }) => {
+      return loaders.projectMembersByUserLoader.load(parent.user_id);
     },
-    tasks: (parent) => {
-      return prisma.tasks.findMany({
-        where: { assignee_id: parent.user_id },
-        orderBy: { created_at: 'desc' }
-      });
+    tasks: (parent, _, { loaders }) => {
+      return loaders.tasksByAssigneeLoader.load(parent.user_id);
     },
-    // notifications: (parent) => {
-    //   return prisma.notifications.findMany({
-    //     where: { user_id: parent.user_id }
-    //   });
-    // },
-    comments: (parent) => {
-      return prisma.task_comments.findMany({
-        where: { user_id: parent.user_id },
-        orderBy: {
-          created_at: 'desc'
-        }
-      });
+    notifications: (parent, _, { loaders }) => {
+      return loaders.notificationsByUserLoader.load(parent.user_id);
+    },
+    comments: (parent, _, { loaders }) => {
+      return loaders.taskCommentsByUserLoader.load(parent.user_id);
     }
   }
 };

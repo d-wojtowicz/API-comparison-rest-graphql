@@ -15,19 +15,18 @@ const pubsub = new PubSub();
 
 export const notificationResolvers = {
   Query: {
-    myNotifications: async (_, __, { user }) => {
+    myNotifications: async (_, __, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'myNotifications: User not authenticated');
         throw new Error('Not authenticated');
       }
 
-      return prisma.notifications.findMany({
-        where: { user_id: user.userId },
-        orderBy: { created_at: 'desc' }
-      });
+      const myNotifications = await loaders.myNotificationsLoader.load(user.userId);
+
+      return myNotifications;
     },
 
-    unreadNotificationsCount: async (_, __, { user }) => {
+    unreadNotificationsCount: async (_, __, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'unreadNotificationsCount: User not authenticated');
         throw new Error('Not authenticated');
@@ -41,15 +40,13 @@ export const notificationResolvers = {
       });
     },
 
-    notification: async (_, { id }, { user }) => {
+    notification: async (_, { id }, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'notification: User not authenticated');
         throw new Error('Not authenticated');
       }
 
-      const notification = await prisma.notifications.findUnique({
-        where: { notification_id: Number(id) }
-      });
+      const notification = await loaders.notificationLoader.load(Number(id));
 
       if (!notification) {
         log.error(NAMESPACE, 'notification: Notification not found');
@@ -191,10 +188,8 @@ export const notificationResolvers = {
   },
 
   Notification: {
-    user: (parent) => {
-      return prisma.users.findUnique({
-        where: { user_id: parent.user_id }
-      });
+    user: (parent, _, { loaders }) => {
+      return loaders.userLoader.load(parent.user_id);
     }
   }
 }; 

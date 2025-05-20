@@ -13,69 +13,56 @@ const isAdmin = (user) => user?.role === 'admin' || user?.role === 'superadmin';
 
 export const projectResolvers = {
   Query: {
-    project: async (_, { id }) => {
-      return prisma.projects.findUnique({
-        where: { project_id: Number(id) },
-        include: {
-          users: true,
-          project_members: {
-            include: {
-              users: true
-            }
-          }
-        }
-      });
+    project: async (_, { id }, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'project: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      const project = await loaders.projectLoader.load(Number(id));
+
+      if (!project) {
+        log.error(NAMESPACE, 'project: Project not found');
+        throw new Error('Project not found');
+      }
+
+      if (!isProjectOwner(user, project) && !isProjectMember(user, project.project_id) && !isAdmin(user)) {
+        log.error(NAMESPACE, 'project: Not authorized to access this project');
+        throw new Error('Not authorized');
+      }
+
+      return project;
     },
-    projects: async () => {
-      return prisma.projects.findMany({
-        include: {
-          users: true,
-          project_members: {
-            include: {
-              users: true
-            }
-          }
-        }
-      });
+    projects: async (_, __, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'projects: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      if (!isAdmin(user)) {
+        log.error(NAMESPACE, 'projects: Not authorized to access all projects');
+        throw new Error('Not authorized');
+      }
+
+      return prisma.projects.findMany();
     },
-    myProjects: async (_, __, { user }) => {
+    myProjects: async (_, __, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'myProjects: User not authenticated');
         throw new Error('Not authenticated');
       }
 
-      return prisma.projects.findMany({
-        where: {
-          OR: [
-            { owner_id: user.userId },
-            {
-              project_members: {
-                some: {
-                  user_id: user.userId
-                }
-              }
-            }
-          ]
-        },
-        include: {
-          users: true,
-          project_members: {
-            include: {
-              users: true
-            }
-          }
-        }
-      });
+      const myProjects = await loaders.myProjectsLoader.load(user.userId);
+
+      return myProjects;
     },
-    projectMembers: async (_, { project_id }, { user }) => {
+    projectMembers: async (_, { project_id }, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'projectMembers: User not authenticated');
         throw new Error('Not authenticated');
       }
 
-      const project = await prisma.projects.findUnique({
-        where: { project_id: Number(project_id) }
-      });
+      const project = await loaders.projectLoader.load(Number(project_id));
 
       if (!project) {
         log.error(NAMESPACE, 'projectMembers: Project not found');
@@ -87,12 +74,7 @@ export const projectResolvers = {
         throw new Error('Not authorized');
       }
 
-      return prisma.project_members.findMany({
-        where: { project_id: Number(project_id) },
-        include: {
-          users: true
-        }
-      });
+      return loaders.projectMembersByProjectLoader.load(Number(project_id));
     }
   },
   Mutation: {
@@ -281,35 +263,21 @@ export const projectResolvers = {
   },
   Project: {
     owner: (parent) => {
-      return prisma.users.findUnique({
-        where: { user_id: parent.owner_id }
-      });
+      return loaders.userLoader.load(parent.owner_id);
     },
     members: (parent) => {
-      return prisma.project_members.findMany({
-        where: { project_id: parent.project_id },
-        include: {
-          users: true
-        }
-      });
+      return loaders.projectMembersByProjectLoader.load(parent.project_id);
     },
     tasks: (parent) => {
-      return prisma.tasks.findMany({
-        where: { project_id: parent.project_id },
-        orderBy: { created_at: 'desc' }
-      });
+      return loaders.tasksByProjectLoader.load(parent.project_id);
     }
   },
   ProjectMember: {
     project: (parent) => {
-      return prisma.projects.findUnique({
-        where: { project_id: parent.project_id }
-      });
+      return loaders.projectLoader.load(parent.project_id);
     },
     user: (parent) => {
-      return prisma.users.findUnique({
-        where: { user_id: parent.user_id }
-      });
+      return loaders.userLoader.load(parent.user_id);
     }
   }
 }; 

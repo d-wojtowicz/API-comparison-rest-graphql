@@ -44,7 +44,7 @@ export const projectTypeDefs = gql`
 
   extend type Query {
     project(id: ID!): Project @auth
-    projects: [Project!]! @auth
+    projects: [Project!]! @auth(requires: ADMIN)
     myProjects: [Project!]! @auth
     projectMembers(project_id: ID!): [ProjectMember!]! @auth
   }

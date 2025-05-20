@@ -17,7 +17,7 @@ export const statusTypeDefs = gql`
 
   extend type Query {
     taskStatus(id: ID!): TaskStatus @auth
-    taskStatuses: [TaskStatus!]! @auth
+    taskStatuses: [TaskStatus!]! @auth(requires: ADMIN)
   }
 
   extend type Mutation {
