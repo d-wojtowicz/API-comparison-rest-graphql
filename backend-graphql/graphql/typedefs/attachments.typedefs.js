@@ -22,7 +22,6 @@ export const attachmentTypeDefs = gql`
 
   extend type Query {
     taskAttachment(id: ID!): TaskAttachment @auth
-    taskAttachments: [TaskAttachment!]! @auth
     taskAttachmentsByTask(taskId: ID!): [TaskAttachment!]! @auth
   }
 
