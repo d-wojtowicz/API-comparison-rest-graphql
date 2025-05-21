@@ -160,7 +160,8 @@ export const taskResolvers = {
             ...otherFields,
             project_id: Number(project_id),
             status_id: Number(status_id),
-            assignee_id: assignee_id ? Number(assignee_id) : null
+            assignee_id: assignee_id ? Number(assignee_id) : null,
+            due_date: otherFields.due_date ? new Date(otherFields.due_date).toISOString() : null
           }
         });
 
@@ -198,6 +199,12 @@ export const taskResolvers = {
         throw new Error('Not authorized to update this task');
       }
 
+      // If assignee is specified, verify they are a project member
+      if (input.assignee_id && !await isProjectMember(Number(input.assignee_id), task.project_id, loaders)) {
+        log.error(NAMESPACE, 'updateTask: Assignee must be a member of the project');
+        throw new Error('Assignee must be a member of the project');
+      }
+
       return await prisma.$transaction(async (tx) => {
         const updatedTask = await tx.tasks.update({
           where: { task_id: Number(id) },
@@ -233,13 +240,14 @@ export const taskResolvers = {
         }
 
         if (input.assignee_id !== undefined && input.assignee_id !== task.assignee_id) {
+          const project = await loaders.projectLoader.load(task.project_id);
           if (input.assignee_id) {
             await notificationService.createNotification(
               input.assignee_id,
               CONSTANTS.NOTIFICATIONS.TYPES.TASK.ASSIGNED,
               {
                 taskName: task.task_name,
-                projectName: task.projects.project_name
+                projectName: project.project_name
               }
             );
           }
@@ -249,7 +257,7 @@ export const taskResolvers = {
               CONSTANTS.NOTIFICATIONS.TYPES.TASK.UNASSIGNED,
               {
                 taskName: task.task_name,
-                projectName: task.projects.project_name
+                projectName: project.project_name
               }
             );
           }
