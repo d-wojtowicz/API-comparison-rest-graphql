@@ -20,7 +20,7 @@ export const userResolvers = {
       }
       return prisma.users.findUnique({ where: { user_id: user.userId } });
     },
-    user: async (_, { id }, { user }) => {
+    user: async (_, { id }, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'user: User not authenticated');
         throw new Error('Not authenticated');
@@ -50,7 +50,12 @@ export const userResolvers = {
     },
   },
   Mutation: {
-    register: async (_, { input }) => {
+    register: async (_, { input }, { user }) => {
+      if (user) {
+        log.error(NAMESPACE, 'register: User already authenticated');
+        throw new Error('User already authenticated');
+      }
+
       const { username, email, password } = input;
       
       // Check if user already exists
@@ -78,9 +83,14 @@ export const userResolvers = {
         },
       });
     },
-    login: async (_, { input }) => {
+    login: async (_, { input }, { user }) => {
+      if (user) {
+        log.error(NAMESPACE, 'login: User already authenticated');
+        throw new Error('User already authenticated');
+      }
+
       const { login, password } = input;
-      const user = await prisma.users.findFirst({ 
+      const userCredentials = await prisma.users.findFirst({ 
         where: { 
           OR: [
             // Allow login with email or username
@@ -90,21 +100,21 @@ export const userResolvers = {
         }
       });
 
-      if (!user) {
+      if (!userCredentials) {
         log.error(NAMESPACE, `login: User with email/username ${login} not found`);
         throw new Error('Invalid credentials');
       }
 
-      const valid = await bcrypt.compare(password, user.password_hash);
+      const valid = await bcrypt.compare(password, userCredentials.password_hash);
       if (!valid) {
         log.error(NAMESPACE, 'login: Invalid password');
         throw new Error('Invalid credentials');
       }
 
-      const { token } = signToken(user);
+      const { token } = signToken(userCredentials);
 
       return {
-        user,
+        user: userCredentials,
         accessToken: token
       };
     },
@@ -142,15 +152,13 @@ export const userResolvers = {
       log.info(NAMESPACE, 'changePassword: Password updated successfully');
       return true;
     },
-    updateUserRole: async (_, { id, role }, { user }) => {
+    updateUserRole: async (_, { id, role }, { user, loaders }) => {
       if (!isAdmin(user)) {
         log.error(NAMESPACE, 'updateUserRole: User not authorized');
         throw new Error('Not authorized');
       }
 
-      const targetUser = await prisma.users.findUnique({
-        where: { user_id: Number(id) }
-      });
+      const targetUser = await loaders.userLoader.load(Number(id));
 
       if (!targetUser) {
         log.error(NAMESPACE, 'updateUserRole: User not found');
@@ -169,6 +177,11 @@ export const userResolvers = {
         throw new Error('Cannot modify superadmin users');
       }
 
+      if (role === 'superadmin') {
+        log.error(NAMESPACE, 'updateUserRole: Cannot promote to superadmin');
+        throw new Error('Cannot promote to superadmin');
+      }
+
       return prisma.users.update({
         where: { user_id: Number(id) },
         data: { 
@@ -177,15 +190,13 @@ export const userResolvers = {
         }
       });
     },
-    deleteUser: async (_, { id }, { user }) => {
+    deleteUser: async (_, { id }, { user, loaders }) => {
       if (!isAdmin(user)) {
         log.error(NAMESPACE, 'deleteUser: User not authorized');
         throw new Error('Not authorized');
       }
 
-      const targetUser = await prisma.users.findUnique({
-        where: { user_id: Number(id) }
-      });
+      const targetUser = await loaders.userLoader.load(Number(id));
 
       if (!targetUser) {
         log.error(NAMESPACE, 'deleteUser: User not found');
@@ -193,9 +204,14 @@ export const userResolvers = {
       }
 
       // Prevent deleting admin users
-      if (targetUser.role === 'admin') {
+      if (isAdmin(targetUser)) {
         log.error(NAMESPACE, 'deleteUser: Cannot delete admin users');
         throw new Error('Cannot delete admin users');
+      }
+
+      if (isSelf(user, targetUser.user_id)) {
+        log.error(NAMESPACE, 'deleteUser: Cannot delete self');
+        throw new Error('Cannot delete self');
       }
 
       await prisma.users.delete({
@@ -206,17 +222,17 @@ export const userResolvers = {
     },
   },
   User: {
-    projects: (parent, _, { loaders }) => {
-      return loaders.projectsByUserLoader.load(parent.user_id);
-    },
     memberOf: (parent, _, { loaders }) => {
       return loaders.projectMembersByUserLoader.load(parent.user_id);
     },
-    tasks: (parent, _, { loaders }) => {
-      return loaders.tasksByAssigneeLoader.load(parent.user_id);
+    projects: (parent, _, { loaders }) => {
+      return loaders.projectsByUserLoader.load(parent.user_id);
     },
     notifications: (parent, _, { loaders }) => {
       return loaders.notificationsByUserLoader.load(parent.user_id);
+    },
+    tasks: (parent, _, { loaders }) => {
+      return loaders.tasksByAssigneeLoader.load(parent.user_id);
     },
     comments: (parent, _, { loaders }) => {
       return loaders.taskCommentsByUserLoader.load(parent.user_id);

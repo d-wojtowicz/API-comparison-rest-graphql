@@ -262,21 +262,21 @@ export const projectResolvers = {
     }
   },
   Project: {
-    owner: (parent) => {
+    owner: (parent, _, { loaders }) => {
       return loaders.userLoader.load(parent.owner_id);
     },
-    members: (parent) => {
+    members: (parent, _, { loaders }) => {
       return loaders.projectMembersByProjectLoader.load(parent.project_id);
     },
-    tasks: (parent) => {
+    tasks: (parent, _, { loaders }) => {
       return loaders.tasksByProjectLoader.load(parent.project_id);
     }
   },
   ProjectMember: {
-    project: (parent) => {
+    project: (parent, _, { loaders }) => {
       return loaders.projectLoader.load(parent.project_id);
     },
-    user: (parent) => {
+    user: (parent, _, { loaders }) => {
       return loaders.userLoader.load(parent.user_id);
     }
   }

@@ -163,17 +163,34 @@ export const statusResolvers = {
 				throw new Error('Not authenticated');
 			}
 
+			// For admin/superadmin, return all tasks
+			if (isAdmin(user)) {
+				return loaders.tasksByStatusLoader.load(parent.status_id);
+			}
+			
+			// For regular users, get tasks and filter by project access
 			const tasks = await loaders.tasksByStatusLoader.load(parent.status_id);
 			if (!tasks.length) return [];
-			
-			// For admin/superadmin, return all tasks
-			if (isAdmin(user)) return tasks;
-			
-			// For regular users, filter tasks based on project access
-			const taskIds = tasks.map(task => task.task_id);
-			const tasksWithAccess = await loaders.tasksWithProjectAccessLoader(user.userId).load(taskIds);
 
-			return tasksWithAccess.filter(task => task !== null);
+			// Get all project IDs for these tasks
+			const projectIds = [...new Set(tasks.map(task => task.project_id))];
+			
+			// Check which projects the user has access to
+			const projects = await Promise.all(
+				projectIds.map(id => loaders.projectLoader.load(id))
+			);
+			
+			const accessibleProjectIds = projects
+				.filter(project => 
+					project && (
+						project.owner_id === user.userId ||
+						project.project_members?.some(member => member.user_id === user.userId)
+					)
+				)
+				.map(project => project.project_id);
+
+			// Return only tasks from accessible projects
+			return tasks.filter(task => accessibleProjectIds.includes(task.project_id));
 		}
 	}
 };

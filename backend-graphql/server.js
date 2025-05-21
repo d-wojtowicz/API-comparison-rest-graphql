@@ -58,7 +58,7 @@ async function startServer() {
               return { user: null, loaders: createLoaders() };
             }
             else {
-              log.info(NAMESPACE, 'Successful user authorization');
+              log.info(NAMESPACE, `Successful user ID authorization: ${user.userId}`);
               return { user, loaders: createLoaders() };
             }
           }

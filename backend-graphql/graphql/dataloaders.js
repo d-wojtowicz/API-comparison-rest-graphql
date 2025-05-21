@@ -47,28 +47,40 @@ const createBatchLoader = (model, foreignKey) => {
 // Custom loaders
 const createTasksWithProjectAccessLoader = (userId) => {
   return new DataLoader(async (taskIds) => {
+    // Filter out any invalid IDs
+    const validTaskIds = taskIds
+      .map(id => Number(id))
+      .filter(id => !isNaN(id));
+
+    if (validTaskIds.length === 0) {
+      return taskIds.map(() => null);
+    }
+
     const tasks = await prisma.tasks.findMany({
       where: {
-        task_id: { in: taskIds.map(id => Number(id)) },
-      projects: {
-        OR: [
-          { owner_id: userId },
-          {
-            project_members: {
-              some: { user_id: userId }
+        task_id: { in: validTaskIds },
+        projects: {
+          OR: [
+            { owner_id: userId },
+            {
+              project_members: {
+                some: { user_id: userId }
+              }
             }
-          }
-        ]
+          ]
+        }
       }
-    }
-  });
+    });
 
-  const taskMap = tasks.reduce((map, task) => {
-    map[task.task_id] = task;
-    return map;
-  }, {});
+    const taskMap = tasks.reduce((map, task) => {
+      map[task.task_id] = task;
+      return map;
+    }, {});
 
-    return taskIds.map(id => taskMap[id] || null);
+    return taskIds.map(id => {
+      const numId = Number(id);
+      return !isNaN(numId) ? taskMap[numId] || null : null;
+    });
   });
 }
 
@@ -76,10 +88,10 @@ const createTasksWithProjectAccessLoader = (userId) => {
 export const createLoaders = () => ({
   // One-to-one relationships
   attachmentLoader: createLoader('task_attachments', 'attachment_id'),
-  commentLoader: createLoader('comments', 'comment_id'),
+  commentLoader: createLoader('task_comments', 'comment_id'),
   notificationLoader: createLoader('notifications', 'notification_id'),
   projectLoader: createLoader('projects', 'project_id'),
-  statusLoader: createLoader('statuses', 'status_id'),
+  statusLoader: createLoader('task_statuses', 'status_id'),
   taskLoader: createLoader('tasks', 'task_id'),
   userLoader: createLoader('users', 'user_id'),
 

@@ -30,10 +30,11 @@ const isProjectOwner = async (userId, projectId, loaders) => {
 };
 const hasTaskAccess = async (user, task, loaders) => {
   if (!user) return false;
+  if (!task?.project_id) return false;
   
   const [project, projectMembers] = await Promise.all([
-    loaders.projectLoader.load(task.project_id),
-    loaders.projectMembersByProjectLoader.load(task.project_id)
+    loaders.projectLoader.load(Number(task.project_id)),
+    loaders.projectMembersByProjectLoader.load(Number(task.project_id))
   ]);
 
   if (!project) return false;
@@ -105,13 +106,30 @@ export const taskResolvers = {
       }
 
       const tasks = await loaders.tasksByStatusLoader.load(Number(statusId));
+      if (!tasks.length) return [];
 
-      if (!await hasTaskAccess(user, { status_id: Number(statusId) }, loaders) && !isAdmin(user)) {
-        log.error(NAMESPACE, 'tasksByStatus: User not authorized to view tasks in this status');
-        throw new Error('Not authorized to view tasks in this status');
-      }
+      // For admin users, return all tasks
+      if (isAdmin(user)) return tasks;
 
-      return tasks;
+      // For regular users, filter tasks based on project access
+      const projectIds = [...new Set(tasks.map(task => task.project_id))];
+      
+      // Check which projects the user has access to
+      const projects = await Promise.all(
+        projectIds.map(id => loaders.projectLoader.load(id))
+      );
+      
+      const accessibleProjectIds = projects
+        .filter(project => 
+          project && (
+            project.owner_id === user.userId ||
+            project.project_members?.some(member => member.user_id === user.userId)
+          )
+        )
+        .map(project => project.project_id);
+
+      // Return only tasks from accessible projects
+      return tasks.filter(task => accessibleProjectIds.includes(task.project_id));
     }
   },
 
