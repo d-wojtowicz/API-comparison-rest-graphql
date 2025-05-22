@@ -8,7 +8,12 @@ const NAMESPACE = CONFIG.server.env === 'PROD' ? 'PROJECT-RESOLVER' : 'graphql/r
 
 // Helper functions
 const isProjectOwner = (user, project) => user?.userId === project.owner_id;
-const isProjectMember = (user, projectId) => projectId && user?.userId;
+const isProjectMember = async (user, projectId, loaders) => {
+  if (!user || !projectId) return false;
+  
+  const members = await loaders.projectMembersByProjectLoader.load(Number(projectId));
+  return members.some(member => member.user_id === user.userId);
+};
 const isAdmin = (user) => user?.role === 'admin' || user?.role === 'superadmin';
 
 export const projectResolvers = {
@@ -26,7 +31,7 @@ export const projectResolvers = {
         throw new Error('Project not found');
       }
 
-      if (!isProjectOwner(user, project) && !isProjectMember(user, project.project_id) && !isAdmin(user)) {
+      if (!isProjectOwner(user, project) && !(await isProjectMember(user, project.project_id, loaders)) && !isAdmin(user)) {
         log.error(NAMESPACE, 'project: Not authorized to access this project');
         throw new Error('Not authorized');
       }
@@ -69,7 +74,7 @@ export const projectResolvers = {
         throw new Error('Project not found');
       }
 
-      if (!isProjectOwner(user, project) && !isProjectMember(user, project_id)) {
+      if (!isProjectOwner(user, project) && !await isProjectMember(user, project_id, loaders) && !isAdmin(user)) {
         log.error(NAMESPACE, 'projectMembers: Not authorized to view project members');
         throw new Error('Not authorized');
       }
@@ -185,15 +190,15 @@ export const projectResolvers = {
 
       return true;
     },
-    addProjectMember: async (_, { projectId, userId, role }, { user }) => {
+    addProjectMember: async (_, { input }, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'addProjectMember: User not authenticated');
         throw new Error('Not authenticated');
       }
 
-      const project = await prisma.projects.findUnique({
-        where: { project_id: Number(projectId) }
-      });
+      const { project_id, user_id, role } = input;
+
+      const project = await loaders.projectLoader.load(Number(project_id));
 
       if (!project) {
         log.error(NAMESPACE, 'addProjectMember: Project not found');
@@ -207,30 +212,28 @@ export const projectResolvers = {
 
       const member = await prisma.project_members.create({
         data: {
-          project_id: Number(projectId),
-          user_id: Number(userId),
+          project_id: Number(project_id),
+          user_id: Number(user_id),
           role
         }
       });
 
       // Create notification for the new member using the already fetched project data
       await notificationService.createNotification(
-        userId,
+        user_id,
         CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.ADDED_AS_MEMBER,
         { projectName: project.project_name }
       );
 
       return member;
     },
-    removeProjectMember: async (_, { projectId, userId }, { user }) => {
+    removeProjectMember: async (_, { user_id, project_id }, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'removeProjectMember: User not authenticated');
         throw new Error('Not authenticated');
       }
 
-      const project = await prisma.projects.findUnique({
-        where: { project_id: Number(projectId) }
-      });
+      const project = await loaders.projectLoader.load(Number(project_id));
 
       if (!project) {
         log.error(NAMESPACE, 'removeProjectMember: Project not found');
@@ -242,18 +245,33 @@ export const projectResolvers = {
         throw new Error('Not authorized');
       }
 
+      // Check if the member exists
+      const member = await prisma.project_members.findUnique({
+        where: {
+          project_id_user_id: {
+            project_id: Number(project_id),
+            user_id: Number(user_id)
+          }
+        }
+      });
+
+      if (!member) {
+        log.error(NAMESPACE, 'removeProjectMember: Member not found in project');
+        throw new Error('Member is not part of this project');
+      }
+
       await prisma.project_members.delete({
         where: {
           project_id_user_id: {
-            project_id: Number(projectId),
-            user_id: Number(userId)
+            project_id: Number(project_id),
+            user_id: Number(user_id)
           }
         }
       });
 
       // Create notification for the removed member using the already fetched project data
       await notificationService.createNotification(
-        userId,
+        Number(user_id),
         CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.REMOVED_AS_MEMBER,
         { projectName: project.project_name }
       );
