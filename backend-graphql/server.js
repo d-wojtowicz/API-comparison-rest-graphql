@@ -11,6 +11,7 @@ import CONFIG from './config/config.js';
 import { typeDefs, resolvers } from './graphql/index.js';
 import { verifyToken, validateToken } from './utils/jwt.js';
 import { authDirectiveTransformer } from './middleware/auth-directive.js';
+import { createLoaders } from './graphql/dataloaders.js';
 
 
 const NAMESPACE = CONFIG.server.env == 'PROD' ? 'SERVER' : 'server.js';
@@ -46,24 +47,24 @@ async function startServer() {
           const auth = req.headers.authorization;
           
           if (!validateToken(auth)) {
-            log.warn(NAMESPACE, 'Token failed validation');
-            return { user: null };
+            if (CONFIG.server.env !== 'PROD') log.warn(NAMESPACE, 'Token failed validation');
+            return { user: null, loaders: createLoaders() };
           } 
           else {
             const token = auth.slice(7).trim();
             const user = await verifyToken(token);
             if (!user) {
-              log.error(NAMESPACE, 'Invalid JWT token');
-              return { user: null };
+              if (CONFIG.server.env !== 'PROD') log.error(NAMESPACE, 'Invalid JWT token');
+              return { user: null, loaders: createLoaders() };
             }
             else {
-              log.info(NAMESPACE, 'Successful user authorization');
-              return { user };
+              if (CONFIG.server.env !== 'PROD') log.info(NAMESPACE, `Successful user ID authorization: ${user.userId}`);
+              return { user, loaders: createLoaders() };
             }
           }
         } catch (err) {
-          log.error(NAMESPACE, `Authorization error: ${err.message}`);
-          return { user: null };
+          if (CONFIG.server.env !== 'PROD') log.error(NAMESPACE, `Authorization error: ${err.message}`);
+          return { user: null, loaders: createLoaders() };
         }
       }
     })

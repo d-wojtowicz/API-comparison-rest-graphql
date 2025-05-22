@@ -28,7 +28,7 @@ export const notificationTypeDefs = gql`
   }
 
   extend type Mutation {
-    createNotification(input: CreateNotificationInput!): Notification! @auth
+    createNotification(input: CreateNotificationInput!): Notification! @auth(requires: SUPERADMIN)
     updateNotification(id: ID!, input: UpdateNotificationInput!): Notification! @auth
     markAllNotificationsAsRead: Boolean! @auth
     deleteNotification(id: ID!): Boolean! @auth

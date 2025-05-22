@@ -41,11 +41,10 @@ export const taskTypeDefs = gql`
   }
 
   extend type Query {
-    task(id: ID!): Task
-    tasks: [Task!]!
-    tasksByProject(projectId: ID!): [Task!]!
-    tasksByAssignee(assigneeId: ID!): [Task!]!
-    tasksByStatus(statusId: ID!): [Task!]!
+    task(id: ID!): Task @auth
+    tasksByProject(projectId: ID!): [Task!]! @auth
+    tasksByAssignee(assigneeId: ID!): [Task!]! @auth
+    tasksByStatus(statusId: ID!): [Task!]! @auth
   }
 
   extend type Mutation {

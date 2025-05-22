@@ -23,8 +23,8 @@ export const commentTypeDefs = gql`
   }
 
   extend type Query {
-    taskComment(id: ID!): TaskComment
-    taskComments(taskId: ID!): [TaskComment!]!
+    taskComment(id: ID!): TaskComment @auth
+    taskComments(taskId: ID!): [TaskComment!]! @auth
   }
 
   extend type Mutation {

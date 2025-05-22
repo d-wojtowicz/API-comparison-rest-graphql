@@ -4,22 +4,40 @@ import CONFIG from '../../config/config.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'STATUS-RESOLVER' : 'graphql/resolvers/statuses.resolvers.js';
 
+// Helper functions
+const isSuperAdmin = (user) => user?.role === 'superadmin';
+const isAdmin = (user) => user?.role === 'admin' || isSuperAdmin(user);
+
 export const statusResolvers = {
 	Query: {
-		taskStatus: async (_, { id }) => {
-			return prisma.task_statuses.findUnique({
-				where: { status_id: Number(id) },
-				include: {
-					tasks: true
-				}
-			});
+		taskStatus: async (_, { id }, { user, loaders }) => {
+			if (!user) {
+				log.error(NAMESPACE, 'taskStatus: User not authenticated');
+				throw new Error('Not authenticated');
+			}
+
+			const status = await loaders.statusLoader.load(Number(id));
+
+			if (!status) {
+				log.error(NAMESPACE, 'taskStatus: Status not found');
+				throw new Error('Status not found');
+			}
+
+			return status;
 		},
-		taskStatuses: async () => {
-			return prisma.task_statuses.findMany({
-				include: {
-					tasks: true
-				}
-			});
+		// ADMIN ONLY
+		taskStatuses: async (_, __, { user, loaders }) => {
+			if (!user) {
+				log.error(NAMESPACE, 'taskStatuses: User not authenticated');
+				throw new Error('Not authenticated');
+			}
+
+			if (!isAdmin(user)) {
+				log.error(NAMESPACE, 'taskStatuses: User not authorized to view statuses');
+				throw new Error('Not authorized to view statuses');
+			}
+
+			return prisma.task_statuses.findMany();
 		}
 	},
 	Mutation: {
@@ -27,6 +45,11 @@ export const statusResolvers = {
 			if (!user) {
 				log.error(NAMESPACE, 'createStatus: User not authenticated');
 				throw new Error('Not authenticated');
+			}
+
+			if (!isSuperAdmin(user)) {
+				log.error(NAMESPACE, 'createStatus: User not authorized to create statuses');
+				throw new Error('Not authorized to create statuses');
 			}
 
 			const { status_name } = input;
@@ -44,9 +67,6 @@ export const statusResolvers = {
 			return prisma.task_statuses.create({
 				data: {
 					status_name
-				},
-				include: {
-					tasks: true
 				}
 			});
 		},
@@ -54,6 +74,11 @@ export const statusResolvers = {
 			if (!user) {
 				log.error(NAMESPACE, 'updateStatus: User not authenticated');
 				throw new Error('Not authenticated');
+			}
+
+			if (!isSuperAdmin(user)) {
+				log.error(NAMESPACE, 'updateStatus: User not authorized to update statuses');
+				throw new Error('Not authorized to update statuses');
 			}
 
 			const status = await prisma.task_statuses.findUnique({
@@ -68,8 +93,8 @@ export const statusResolvers = {
 			const { status_name } = input;
 
 			// Check if another status with this name already exists
-			const existingStatus = await prisma.task_statuses.findUnique({
-				where: { 
+			const existingStatus = await prisma.task_statuses.findFirst({
+				where: {
 					status_name,
 					NOT: {
 						status_id: Number(id)
@@ -86,9 +111,6 @@ export const statusResolvers = {
 				where: { status_id: Number(id) },
 				data: {
 					status_name
-				},
-				include: {
-					tasks: true
 				}
 			});
 		},
@@ -96,6 +118,11 @@ export const statusResolvers = {
 			if (!user) {
 				log.error(NAMESPACE, 'deleteStatus: User not authenticated');
 				throw new Error('Not authenticated');
+			}
+
+			if (!isSuperAdmin(user)) {
+				log.error(NAMESPACE, 'deleteStatus: User not authorized to delete statuses');
+				throw new Error('Not authorized to delete statuses');
 			}
 
 			const status = await prisma.task_statuses.findUnique({
@@ -113,8 +140,8 @@ export const statusResolvers = {
 			});
 
 			if (tasksWithStatus.length > 0) {
-				log.error(NAMESPACE, 'deleteStatus: Cannot delete status that is being used by tasks');
-				throw new Error('Cannot delete status that is being used by tasks');
+				log.error(NAMESPACE, 'deleteStatus: Cannot delete status that is being used by tasks. Please update or delete the associated tasks first.');
+				throw new Error('Cannot delete status that is being used by tasks. Please update or delete the associated tasks first.');
 			}
 
 			await prisma.task_statuses.delete({
@@ -123,5 +150,45 @@ export const statusResolvers = {
 
 			return true;
 		}
+	},
+	TaskStatus: {
+		tasks: async (parent, _, { user, loaders }) => {
+			if (!user) {
+				log.error(NAMESPACE, 'tasks: User not authenticated');
+				throw new Error('Not authenticated');
+			}
+
+			// For admin/superadmin, return all tasks
+			if (isAdmin(user)) {
+				return loaders.tasksByStatusLoader.load(parent.status_id);
+			}
+			
+			// For regular users, get tasks and filter by project access
+			const tasks = await loaders.tasksByStatusLoader.load(parent.status_id);
+			if (!tasks.length) return [];
+
+			// Get all project IDs for these tasks
+			const projectIds = [...new Set(tasks.map(task => task.project_id))];
+			
+			// Load all project members for these projects
+			const projectMembers = await Promise.all(
+				projectIds.map(id => loaders.projectMembersByProjectLoader.load(id))
+			);
+
+			// Create a map of project IDs to their members
+			const projectMembersMap = projectIds.reduce((map, id, index) => {
+				map[id] = projectMembers[index];
+				return map;
+			}, {});
+
+			// Return tasks where user is either the project owner or a project member
+			return tasks.filter(task => {
+				const project = projectMembersMap[task.project_id];
+				return project && (
+					project.owner_id === user.userId ||
+					project.some(member => member.user_id === user.userId)
+				);
+			});
+		}
 	}
-}; 
+};
