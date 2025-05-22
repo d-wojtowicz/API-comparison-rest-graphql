@@ -9,6 +9,24 @@ const NAMESPACE = CONFIG.server.env === 'PROD' ? 'COMMENT-RESOLVER' : 'graphql/r
 // Helper functions
 const isCommentAuthor = (user, comment) => user?.userId === comment.user_id;
 const isSuperAdmin = (user) => user?.role === 'superadmin';
+const isAdmin = (user) => user?.role === 'admin' || isSuperAdmin(user);
+const hasTaskAccess = async (user, taskId, loaders) => {
+  if (!user) return false;
+
+  const task = await loaders.taskLoader.load(Number(taskId));
+  if (!task) return false;
+
+  const [project, projectMembers] = await Promise.all([
+    loaders.projectLoader.load(task.project_id),
+    loaders.projectMembersByProjectLoader.load(task.project_id)
+  ]);
+
+  if (!project) return false;
+
+  return task.assignee_id === user.userId ||
+         project.owner_id === user.userId ||
+         projectMembers.some(member => member.user_id === user.userId);
+};
 
 export const commentResolvers = {
   Query: {
@@ -38,13 +56,13 @@ export const commentResolvers = {
         throw new Error('Not authenticated');
       }
 
-      const taskComments = await loaders.taskCommentsLoader.load(Number(taskId));
-      
-      if (!await hasTaskAccess(user, taskComments.task_id, loaders) && !isAdmin(user)) {
+      if (!await hasTaskAccess(user, taskId, loaders) && !isAdmin(user)) {
         log.error(NAMESPACE, 'taskComments: User not authorized to view this task comments');
         throw new Error('Not authorized to view this task comments');
       }
 
+      const taskComments = await loaders.taskCommentsLoader.load(Number(taskId));
+      
       return taskComments;
     }
   },
@@ -57,11 +75,16 @@ export const commentResolvers = {
 
       const { task_id, comment_text } = input;
 
-      // Check if task exists
       const task = await loaders.taskLoader.load(Number(task_id));
+
       if (!task) {
         log.error(NAMESPACE, 'createTaskComment: Task not found');
         throw new Error('Task not found');
+      }
+
+      if (!await hasTaskAccess(user, task_id, loaders) && !isAdmin(user)) {
+        log.error(NAMESPACE, 'createTaskComment: User not authorized to comment on this task');
+        throw new Error('Not authorized to comment on this task');
       }
 
       const comment = await prisma.task_comments.create({
@@ -104,7 +127,7 @@ export const commentResolvers = {
         throw new Error('Comment not found');
       }
 
-      if (!isCommentAuthor(user, comment)) {
+      if (!isCommentAuthor(user, comment) && !isSuperAdmin(user)) {
         log.error(NAMESPACE, 'updateTaskComment: User not authorized to update this comment');
         throw new Error('Not authorized to update this comment');
       }
@@ -114,8 +137,7 @@ export const commentResolvers = {
       return prisma.task_comments.update({
         where: { comment_id: Number(id) },
         data: {
-          comment_text,
-          updated_at: new Date()
+          comment_text
         }
       });
     },
@@ -131,7 +153,7 @@ export const commentResolvers = {
         throw new Error('Comment not found');
       }
 
-      if (!isCommentAuthor(user, comment) && !isSuperAdmin(user)) {
+      if (!isCommentAuthor(user, comment) && !isAdmin(user)) {
         log.error(NAMESPACE, 'deleteTaskComment: User not authorized to delete this comment');
         throw new Error('Not authorized to delete this comment');
       }

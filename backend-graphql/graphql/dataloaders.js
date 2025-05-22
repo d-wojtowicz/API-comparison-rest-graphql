@@ -97,6 +97,7 @@ export const createLoaders = () => ({
 
   // One-to-many relationships
   taskCommentsLoader: createBatchLoader('task_comments', 'task_id'),
+  taskCommentsByUserLoader: createBatchLoader('task_comments', 'user_id'),
   taskAttachmentsLoader: createBatchLoader('task_attachments', 'task_id'),
   tasksByStatusLoader: createBatchLoader('tasks', 'status_id'),
   tasksByProjectLoader: createBatchLoader('tasks', 'project_id'),

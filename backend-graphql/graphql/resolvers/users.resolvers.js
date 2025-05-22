@@ -8,8 +8,8 @@ const NAMESPACE = CONFIG.server.env == 'PROD' ? 'USER-RESOLVER' : 'graphql/resol
 
 // Helper functions
 const isSelf = (user, targetUserId) => user?.userId === targetUserId;
-const isAdmin = (user) => user?.role === 'admin' || user?.role === 'superadmin';
 const isSuperAdmin = (user) => user?.role === 'superadmin';
+const isAdmin = (user) => user?.role === 'admin' || isSuperAdmin(user);
 
 export const userResolvers = {
   Query: {
@@ -222,19 +222,49 @@ export const userResolvers = {
     },
   },
   User: {
-    memberOf: (parent, _, { loaders }) => {
+    memberOf: async (parent, _, { user, loaders }) => {
+      if (!user) return [];
+      
+      // Users can only see their own project memberships unless they're admin
+      if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
+        return [];
+      }
       return loaders.projectMembersByUserLoader.load(parent.user_id);
     },
-    projects: (parent, _, { loaders }) => {
+    projects: async (parent, _, { user, loaders }) => {
+      if (!user) return [];
+      
+      // Users can only see their own projects unless they're admin
+      if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
+        return [];
+      }
       return loaders.projectsByUserLoader.load(parent.user_id);
     },
-    notifications: (parent, _, { loaders }) => {
+    notifications: async (parent, _, { user, loaders }) => {
+      if (!user) return [];
+      
+      // Users can only see their own notifications unless they're admin
+      if (!isSuperAdmin(user) && !isSelf(user, parent.user_id)) {
+        return [];
+      }
       return loaders.notificationsByUserLoader.load(parent.user_id);
     },
-    tasks: (parent, _, { loaders }) => {
+    tasks: async (parent, _, { user, loaders }) => {
+      if (!user) return [];
+      
+      // Users can only see their own tasks unless they're admin
+      if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
+        return [];
+      }
       return loaders.tasksByAssigneeLoader.load(parent.user_id);
     },
-    comments: (parent, _, { loaders }) => {
+    comments: async (parent, _, { user, loaders }) => {
+      if (!user) return [];
+      
+      // Users can only see their own comments unless they're admin
+      if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
+        return [];
+      }
       return loaders.taskCommentsByUserLoader.load(parent.user_id);
     }
   }
