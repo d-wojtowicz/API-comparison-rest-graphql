@@ -17,6 +17,7 @@ import { typeDefs, resolvers } from './graphql/index.js';
 import { verifyToken, validateToken } from './utils/jwt.js';
 import { authDirectiveTransformer } from './middleware/auth-directive.js';
 import { createLoaders } from './graphql/dataloaders.js';
+import { complexityPlugin } from './middleware/complexity-plugin.js';
 
 const NAMESPACE = CONFIG.server.env == 'PROD' ? 'SERVER' : 'server.js';
 
@@ -73,6 +74,8 @@ const serverCleanup = useServer(
 const server = new ApolloServer({
   schema: schemaWithDirectives,
   plugins: [
+    // Query complexity analysis plugin
+    complexityPlugin,
     // Graceful HTTP server shutdown
     ApolloServerPluginDrainHttpServer({ httpServer }),
     // Graceful WebSocket server shutdown

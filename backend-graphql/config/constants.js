@@ -46,7 +46,125 @@ const NOTIFICATIONS = {
 };
 const SUBSCRIPTION_CHANNEL = ({ CHANNEL, USER_ID }) => `${CHANNEL}-${USER_ID}`;
 
+// Complexity section
+// Base complexity costs for different field types
+const COMPLEXITY = {
+  // Basic scalar fields
+  SCALAR: 1,
+  // Object fields with relationships
+  OBJECT: 2,
+  // List fields (multiply by expected size)
+  LIST: 5,
+  // Nested fields (multiply by depth)
+  NESTED: 3,
+  // Maximum allowed complexity
+  MAX: 1000,
+  // Maximum allowed depth
+  MAX_DEPTH: 5
+};
+
+// Field complexity configuration
+const FIELD_COMPLEXITY = {
+  // User fields
+  User: {
+    user_id: COMPLEXITY.SCALAR,
+    username: COMPLEXITY.SCALAR,
+    email: COMPLEXITY.SCALAR,
+    password_hash: COMPLEXITY.SCALAR,
+    created_at: COMPLEXITY.SCALAR,
+    updated_at: COMPLEXITY.SCALAR,
+    role: COMPLEXITY.SCALAR,
+    notifications: COMPLEXITY.LIST,
+    project_members: COMPLEXITY.LIST,
+    projects: COMPLEXITY.LIST,
+    task_comments: COMPLEXITY.LIST,
+    tasks: COMPLEXITY.LIST
+  },
+
+  // Project fields
+  Project: {
+    project_id: COMPLEXITY.SCALAR,
+    project_name: COMPLEXITY.SCALAR,
+    description: COMPLEXITY.SCALAR,
+    created_at: COMPLEXITY.SCALAR,
+    updated_at: COMPLEXITY.SCALAR,
+    owner_id: COMPLEXITY.SCALAR,
+    project_members: COMPLEXITY.LIST,
+    users: COMPLEXITY.OBJECT,
+    tasks: COMPLEXITY.LIST
+  },
+
+  // Task fields
+  Task: {
+    task_id: COMPLEXITY.SCALAR,
+    task_name: COMPLEXITY.SCALAR,
+    description: COMPLEXITY.SCALAR,
+    created_at: COMPLEXITY.SCALAR,
+    updated_at: COMPLEXITY.SCALAR,
+    due_date: COMPLEXITY.SCALAR,
+    priority: COMPLEXITY.SCALAR,
+    status_id: COMPLEXITY.SCALAR,
+    project_id: COMPLEXITY.SCALAR,
+    assignee_id: COMPLEXITY.SCALAR,
+    search_vector: COMPLEXITY.SCALAR,
+    task_attachments: COMPLEXITY.LIST,
+    task_comments: COMPLEXITY.LIST,
+    users: COMPLEXITY.OBJECT,
+    projects: COMPLEXITY.OBJECT,
+    task_statuses: COMPLEXITY.OBJECT
+  },
+
+  // TaskStatus fields
+  TaskStatus: {
+    status_id: COMPLEXITY.SCALAR,
+    status_name: COMPLEXITY.SCALAR,
+    tasks: COMPLEXITY.LIST
+  },
+
+  // TaskComment fields
+  TaskComment: {
+    comment_id: COMPLEXITY.SCALAR,
+    task_id: COMPLEXITY.SCALAR,
+    user_id: COMPLEXITY.SCALAR,
+    comment_text: COMPLEXITY.SCALAR,
+    created_at: COMPLEXITY.SCALAR,
+    search_vector: COMPLEXITY.SCALAR,
+    tasks: COMPLEXITY.OBJECT,
+    users: COMPLEXITY.OBJECT
+  },
+
+  // TaskAttachment fields
+  TaskAttachment: {
+    attachment_id: COMPLEXITY.SCALAR,
+    task_id: COMPLEXITY.SCALAR,
+    file_path: COMPLEXITY.SCALAR,
+    uploaded_at: COMPLEXITY.SCALAR,
+    tasks: COMPLEXITY.OBJECT
+  },
+
+  // Notification fields
+  Notification: {
+    notification_id: COMPLEXITY.SCALAR,
+    user_id: COMPLEXITY.SCALAR,
+    message: COMPLEXITY.SCALAR,
+    is_read: COMPLEXITY.SCALAR,
+    created_at: COMPLEXITY.SCALAR,
+    users: COMPLEXITY.OBJECT
+  },
+
+  // ProjectMember fields
+  ProjectMember: {
+    project_id: COMPLEXITY.SCALAR,
+    user_id: COMPLEXITY.SCALAR,
+    role: COMPLEXITY.SCALAR,
+    projects: COMPLEXITY.OBJECT,
+    users: COMPLEXITY.OBJECT
+  }
+};
+
 export const CONSTANTS = {
   NOTIFICATIONS,
-  SUBSCRIPTION_CHANNEL
+  SUBSCRIPTION_CHANNEL,
+  COMPLEXITY,
+  FIELD_COMPLEXITY
 };
