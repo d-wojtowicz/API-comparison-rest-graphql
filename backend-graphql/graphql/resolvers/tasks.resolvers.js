@@ -134,7 +134,7 @@ export const taskResolvers = {
   },
 
   Mutation: {
-    createTask: async (_, { input }, { user, loaders }) => {
+    createTask: async (_, { input }, { user, loaders, pubsub }) => {
       if (!user) {
         log.error(NAMESPACE, 'createTask: User not authenticated');
         throw new Error('Not authenticated');
@@ -174,7 +174,8 @@ export const taskResolvers = {
             {
               taskName: task.task_name,
               projectName: project.project_name
-            }
+            },
+            pubsub
           );
         }
 
@@ -182,7 +183,7 @@ export const taskResolvers = {
       });
     },
 
-    updateTask: async (_, { id, input }, { user, loaders }) => {
+    updateTask: async (_, { id, input }, { user, loaders, pubsub }) => {
       if (!user) {
         log.error(NAMESPACE, 'updateTask: User not authenticated');
         throw new Error('Not authenticated');
@@ -248,7 +249,8 @@ export const taskResolvers = {
               {
                 taskName: task.task_name,
                 projectName: project.project_name
-              }
+              },
+              pubsub
             );
           }
           if (task.assignee_id) {
@@ -258,7 +260,8 @@ export const taskResolvers = {
               {
                 taskName: task.task_name,
                 projectName: project.project_name
-              }
+              },
+              pubsub
             );
           }
         }
@@ -266,7 +269,7 @@ export const taskResolvers = {
         return updatedTask;
       });
     },
-    deleteTask: async (_, { id }, { user, loaders}) => {
+    deleteTask: async (_, { id }, { user, loaders, pubsub }) => {
       if (!user) {
         log.error(NAMESPACE, 'deleteTask: User not authenticated');
         throw new Error('Not authenticated');
@@ -291,7 +294,8 @@ export const taskResolvers = {
           {
             taskName: task.task_name,
             projectName: project.project_name
-          }
+          },
+          pubsub
         );
       }
 

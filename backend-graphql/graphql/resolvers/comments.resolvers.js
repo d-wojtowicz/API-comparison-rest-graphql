@@ -67,7 +67,7 @@ export const commentResolvers = {
     }
   },
   Mutation: {
-    createTaskComment: async (_, { input }, { user, loaders }) => {
+    createTaskComment: async (_, { input }, { user, loaders, pubsub }) => {
       if (!user) {
         log.error(NAMESPACE, 'createTaskComment: User not authenticated');
         throw new Error('Not authenticated');
@@ -109,7 +109,8 @@ export const commentResolvers = {
           {
             userName: commenter.username,
             taskName: taskDetails.task_name
-          }
+          },
+          pubsub
         );
       }
 

@@ -67,7 +67,7 @@ export const attachmentResolvers = {
   },
 
   Mutation: {
-    createTaskAttachment: async (_, { input }, { user, loaders }) => {
+    createTaskAttachment: async (_, { input }, { user, loaders, pubsub }) => {
       if (!user) {
         log.error(NAMESPACE, 'createTaskAttachment: User not authenticated');
         throw new Error('Not authenticated');
@@ -98,7 +98,8 @@ export const attachmentResolvers = {
             {
               userName: uploader.username,
               taskName: taskDetails.task_name
-            }
+            },
+            pubsub
           );
         }
 

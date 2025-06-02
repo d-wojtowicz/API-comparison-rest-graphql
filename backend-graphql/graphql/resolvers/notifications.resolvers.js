@@ -1,7 +1,6 @@
 import prisma from '../../db/client.js';
 import log from '../../config/logging.js';
 import CONFIG from '../../config/config.js';
-import { PubSub } from 'graphql-subscriptions';
 import { CONSTANTS } from '../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'NOTIFICATION-RESOLVER' : 'graphql/resolvers/notifications.resolvers.js';
@@ -9,9 +8,6 @@ const NAMESPACE = CONFIG.server.env === 'PROD' ? 'NOTIFICATION-RESOLVER' : 'grap
 // Helper functions
 const isNotificationOwner = (user, notification) => user?.userId === notification.user_id;
 const isSuperAdmin = (user) => user?.role === 'superadmin';
-
-// Create PubSub instance for real-time notifications
-const pubsub = new PubSub();
 
 export const notificationResolvers = {
   Query: {
@@ -64,7 +60,7 @@ export const notificationResolvers = {
   },
 
   Mutation: {
-    createNotification: async (_, { input }, { user }) => {
+    createNotification: async (_, { input }, { user, pubsub }) => {
       if (!user) {
         log.error(NAMESPACE, 'createNotification: User not authenticated');
         throw new Error('Not authenticated');
@@ -83,13 +79,18 @@ export const notificationResolvers = {
         }
       });
 
+      const channel = CONSTANTS.SUBSCRIPTION_CHANNEL({ 
+        CHANNEL: CONSTANTS.NOTIFICATIONS.CREATED, 
+        USER_ID: notification.user_id 
+      });
+
       // Publish the new notification for real-time updates
-      pubsub.publish(CONSTANTS.NOTIFICATIONS.CREATED, { notificationCreated: notification });
+      await pubsub.publish(channel, { notificationCreated: notification });
 
       return notification;
     },
 
-    updateNotification: async (_, { id, input }, { user, loaders }) => {
+    updateNotification: async (_, { id, input }, { user, loaders, pubsub }) => {
       if (!user) {
         log.error(NAMESPACE, 'updateNotification: User not authenticated');
         throw new Error('Not authenticated');
@@ -115,8 +116,13 @@ export const notificationResolvers = {
         }
       });
 
+      const channel = CONSTANTS.SUBSCRIPTION_CHANNEL({ 
+        CHANNEL: CONSTANTS.NOTIFICATIONS.UPDATED, 
+        USER_ID: updatedNotification.user_id 
+      });
+
       // Publish the updated notification for real-time updates
-      pubsub.publish(CONSTANTS.NOTIFICATIONS.UPDATED, { notificationUpdated: updatedNotification });
+      await pubsub.publish(channel, { notificationUpdated: updatedNotification });
 
       return updatedNotification;
     },
@@ -169,21 +175,51 @@ export const notificationResolvers = {
 
   Subscription: {
     notificationCreated: {
-      subscribe: (_, __, { user }) => {
+      subscribe: (_, __, { user, pubsub }) => {
         if (!user) {
           log.error(NAMESPACE, 'notificationCreated: User not authenticated');
           throw new Error('Not authenticated');
         }
-        return pubsub.asyncIterator([CONSTANTS.NOTIFICATIONS.CREATED]);
+        if (!pubsub) {
+          log.error(NAMESPACE, 'notificationCreated: PubSub instance is undefined');
+          throw new Error('PubSub instance is not available');
+        }
+
+        const channel = CONSTANTS.SUBSCRIPTION_CHANNEL({ 
+          CHANNEL: CONSTANTS.NOTIFICATIONS.CREATED, 
+          USER_ID: user.userId 
+        });
+
+        return pubsub.asyncIterableIterator([channel], {
+          filter: (payload) => payload.notificationCreated.user_id === user.userId
+        });
+      },
+      resolve: (payload) => {
+        return payload.notificationCreated;
       }
     },
     notificationUpdated: {
-      subscribe: (_, __, { user }) => {
+      subscribe: (_, __, { user, pubsub }) => {
         if (!user) {
           log.error(NAMESPACE, 'notificationUpdated: User not authenticated');
           throw new Error('Not authenticated');
         }
-        return pubsub.asyncIterator([CONSTANTS.NOTIFICATIONS.UPDATED]);
+        if (!pubsub) {
+          log.error(NAMESPACE, 'notificationUpdated: PubSub instance is undefined');
+          throw new Error('PubSub instance is not available');
+        }
+        
+        const channel = CONSTANTS.SUBSCRIPTION_CHANNEL({ 
+          CHANNEL: CONSTANTS.NOTIFICATIONS.UPDATED, 
+          USER_ID: user.userId 
+        });
+
+        return pubsub.asyncIterableIterator([channel], {
+          filter: (payload) => payload.notificationUpdated.user_id === user.userId
+        });
+      },
+      resolve: (payload) => {
+        return payload.notificationUpdated;
       }
     }
   },

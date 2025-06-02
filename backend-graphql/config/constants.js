@@ -43,8 +43,10 @@ const NOTIFICATIONS = {
       DELETED: 'Task "{taskName}" in project "{projectName}" has been deleted'
     }
   }
-}
+};
+const SUBSCRIPTION_CHANNEL = ({ CHANNEL, USER_ID }) => `${CHANNEL}-${USER_ID}`;
 
 export const CONSTANTS = {
-  NOTIFICATIONS
+  NOTIFICATIONS,
+  SUBSCRIPTION_CHANNEL
 };
