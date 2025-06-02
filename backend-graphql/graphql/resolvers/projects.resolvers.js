@@ -112,7 +112,7 @@ export const projectResolvers = {
 
       return project;
     },
-    updateProject: async (_, { id, input }, { user }) => {
+    updateProject: async (_, { id, input }, { user, pubsub }) => {
       if (!user) {
         log.error(NAMESPACE, 'updateProject: User not authenticated');
         throw new Error('Not authenticated');
@@ -147,12 +147,13 @@ export const projectResolvers = {
       await notificationService.notifyProjectMembers(
         id,
         CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.UPDATED,
-        { projectName: updatedProject.project_name }
+        { projectName: updatedProject.project_name },
+        pubsub
       );
 
       return updatedProject;
     },
-    deleteProject: async (_, { id }, { user }) => {
+    deleteProject: async (_, { id }, { user, loaders, pubsub }) => {
       if (!user) {
         log.error(NAMESPACE, 'deleteProject: User not authenticated');
         throw new Error('Not authenticated');
@@ -185,12 +186,13 @@ export const projectResolvers = {
       await notificationService.createNotifications(
         memberIds,
         CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.DELETED,
-        { projectName: project.project_name }
+        { projectName: project.project_name },
+        pubsub
       );
 
       return true;
     },
-    addProjectMember: async (_, { input }, { user, loaders }) => {
+    addProjectMember: async (_, { input }, { user, loaders, pubsub }) => {
       if (!user) {
         log.error(NAMESPACE, 'addProjectMember: User not authenticated');
         throw new Error('Not authenticated');
@@ -222,12 +224,13 @@ export const projectResolvers = {
       await notificationService.createNotification(
         user_id,
         CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.ADDED_AS_MEMBER,
-        { projectName: project.project_name }
+        { projectName: project.project_name },
+        pubsub
       );
 
       return member;
     },
-    removeProjectMember: async (_, { user_id, project_id }, { user, loaders }) => {
+    removeProjectMember: async (_, { user_id, project_id }, { user, loaders, pubsub }) => {
       if (!user) {
         log.error(NAMESPACE, 'removeProjectMember: User not authenticated');
         throw new Error('Not authenticated');
@@ -273,7 +276,8 @@ export const projectResolvers = {
       await notificationService.createNotification(
         Number(user_id),
         CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.REMOVED_AS_MEMBER,
-        { projectName: project.project_name }
+        { projectName: project.project_name },
+        pubsub
       );
 
       return true;

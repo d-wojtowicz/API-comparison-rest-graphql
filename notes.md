@@ -65,3 +65,10 @@ These constraints are not supported by Prisma Client, because Prisma currently d
 
 TODO: For fields with tsvector eventually implement queries and mutations with manual SQL instead of ORM's of Prisma.
 TODO: Checking constraints - create data validation for these fields before saving to the database
+
+3. WebSocket Server
+   Needed packages are:
+
+- ws                       to create WebSocket server
+- graphql-ws               to create WebSocket server clean up
+- graphql-subscriptions    to handle subscriptions with subscribe() method

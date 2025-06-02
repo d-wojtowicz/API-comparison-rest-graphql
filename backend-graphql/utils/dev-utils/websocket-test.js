@@ -3,6 +3,7 @@ import WebSocket from 'ws';
 import CONFIG from '../../config/config.js';
 import { generateAuthToken } from './auth-token.js';
 import log from '../../config/logging.js';
+import { CONSTANTS } from '../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'WEBSOCKET-TEST' : 'utils/dev-utils/websocket-test.js';
 
@@ -22,7 +23,7 @@ async function testWebSocketConnection() {
     const client = createClient({
       url: `ws://${CONFIG.server.host}:${CONFIG.server.port}/graphql`,
       connectionParams: {
-        authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`
       },
       webSocketImpl: WebSocket,
       retryAttempts: 5,
@@ -36,6 +37,7 @@ async function testWebSocketConnection() {
           subscription {
             notificationCreated {
               notification_id
+              user_id
               message
               is_read
               created_at
@@ -63,6 +65,7 @@ async function testWebSocketConnection() {
           subscription {
             notificationUpdated {
               notification_id
+              user_id
               message
               is_read
               created_at
@@ -87,11 +90,50 @@ async function testWebSocketConnection() {
     log.info(NAMESPACE, 'WebSocket connection established. Waiting for notifications...');
     log.info(NAMESPACE, 'Press Ctrl+C to stop the test');
 
+    // Create a test notification after 2 seconds
+    setTimeout(async () => {
+      try {
+        const response = await fetch(`http://${CONFIG.server.host}:${CONFIG.server.port}/graphql`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            query: `
+              mutation CreateNotification($input: CreateNotificationInput!) {
+                createNotification(input: $input) {
+                  notification_id
+                  user_id
+                  message
+                  is_read
+                  created_at
+                }
+              }
+            `,
+            variables: {
+              input: {
+                user_id: "1", // Send to superadmin
+                message: "Test notification from websocket test"
+              }
+            }
+          })
+        });
+
+        const result = await response.json();
+        if (result.errors) {
+          log.error(NAMESPACE, 'Failed to create test notification:', result.errors);
+        } else {
+          log.info(NAMESPACE, 'Test notification created successfully');
+        }
+      } catch (error) {
+        log.error(NAMESPACE, 'Error creating test notification:', error);
+      }
+    }, 2000);
+
     // Handle process termination
     process.on('SIGINT', () => {
       log.info(NAMESPACE, 'Stopping WebSocket test...');
-      creationSubscription.unsubscribe();
-      updateSubscription.unsubscribe();
       process.exit(0);
     });
 

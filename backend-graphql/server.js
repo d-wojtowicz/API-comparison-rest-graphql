@@ -6,6 +6,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { useServer } from 'graphql-ws/use/ws';
+import { PubSub } from 'graphql-subscriptions';
 
 import cors from 'cors';
 import { json } from 'express';
@@ -29,6 +30,9 @@ const wsServer = new WebSocketServer({
   path: '/graphql',
 });
 
+// Create PubSub instance
+const pubsub = new PubSub();
+
 // Configure basic middleware
 app.use(cors());
 app.use(json());
@@ -45,20 +49,20 @@ const serverCleanup = useServer(
   {
     schema: schemaWithDirectives,
     context: async (ctx) => {
-      const auth = ctx.connectionParams?.authorization;
+      const auth = ctx.connectionParams?.Authorization;
       if (!auth) {
         if (CONFIG.server.env !== 'PROD') log.warn(NAMESPACE + '|USE-SERVER', 'No authorization header provided');
-        return { user: null, loaders: createLoaders() };
+        return { user: null, loaders: createLoaders(), pubsub };
       }
       
       try {
         const token = auth.slice(7).trim();
         const user = await verifyToken(token);
         if (CONFIG.server.env !== 'PROD') log.info(NAMESPACE + '|USE-SERVER', `Successful user ID authorization: ${user.userId}`);
-        return { user, loaders: createLoaders() };
+        return { user, loaders: createLoaders(), pubsub };
       } catch (err) {
         if (CONFIG.server.env !== 'PROD') log.error(NAMESPACE + '|USE-SERVER', `Authorization error: ${err.message}`);
-        return { user: null, loaders: createLoaders() };
+        return { user: null, loaders: createLoaders(), pubsub };
       }
     },
   },
@@ -99,23 +103,23 @@ async function startServer() {
           
           if (!validateToken(auth)) {
             if (CONFIG.server.env !== 'PROD') log.warn(NAMESPACE + '|EXPRESS-MIDDLEWARE', 'Token failed validation');
-            return { user: null, loaders: createLoaders() };
+            return { user: null, loaders: createLoaders(), pubsub };
           } 
           else {
             const token = auth.slice(7).trim();
             const user = await verifyToken(token);
             if (!user) {
               if (CONFIG.server.env !== 'PROD') log.error(NAMESPACE + '|EXPRESS-MIDDLEWARE', 'Invalid JWT token');
-              return { user: null, loaders: createLoaders() };
+              return { user: null, loaders: createLoaders(), pubsub };
             }
             else {
               if (CONFIG.server.env !== 'PROD') log.info(NAMESPACE + '|EXPRESS-MIDDLEWARE', `Successful user ID authorization: ${user.userId}`);
-              return { user, loaders: createLoaders() };
+              return { user, loaders: createLoaders(), pubsub };
             }
           }
         } catch (err) {
           if (CONFIG.server.env !== 'PROD') log.error(NAMESPACE + '|EXPRESS-MIDDLEWARE', `Authorization error: ${err.message}`);
-          return { user: null, loaders: createLoaders() };
+          return { user: null, loaders: createLoaders(), pubsub };
         }
       }
     })

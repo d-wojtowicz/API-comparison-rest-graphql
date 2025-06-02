@@ -1,8 +1,9 @@
 import prisma from '../db/client.js';
 import { CONSTANTS } from '../config/constants.js';
-import { PubSub } from 'graphql-subscriptions';
+import log from '../config/logging.js';
+import CONFIG from '../config/config.js';
 
-const pubsub = new PubSub();
+const NAMESPACE = CONFIG.server.env === 'PROD' ? 'NOTIFICATION-SERVICE' : 'services/notification.service.js';
 
 export const notificationService = {
   // Format notification message by replacing placeholders with actual values
@@ -15,7 +16,7 @@ export const notificationService = {
   },
 
   // Create a notification and publish it through PubSub
-  createNotification: async (userId, type, messageValues) => {
+  createNotification: async (userId, type, messageValues, pubsub) => {
     let template;
     
     // Get the correct message template based on notification type
@@ -40,20 +41,26 @@ export const notificationService = {
       }
     });
 
-    pubsub.publish(CONSTANTS.NOTIFICATIONS.CREATED, { notificationCreated: notification });
+    const channel = CONSTANTS.SUBSCRIPTION_CHANNEL({ 
+      CHANNEL: CONSTANTS.NOTIFICATIONS.CREATED, 
+      USER_ID: userId 
+    });
+    
+    // Publish the notification using the shared PubSub instance
+    await pubsub.publish(channel, { notificationCreated: notification });
 
     return notification;
   },
 
   // Create notifications for multiple users
-  createNotifications: async (userIds, type, messageValues) => {
+  createNotifications: async (userIds, type, messageValues, pubsub) => {
     return Promise.all(
-      userIds.map(userId => notificationService.createNotification(userId, type, messageValues))
+      userIds.map(userId => notificationService.createNotification(userId, type, messageValues, pubsub))
     );
   },
 
   // Create notifications for all project members
-  notifyProjectMembers: async (projectId, type, messageValues, excludeUserIds = []) => {
+  notifyProjectMembers: async (projectId, type, messageValues, pubsub, excludeUserIds = []) => {
     const members = await prisma.project_members.findMany({
       where: { 
         project_id: Number(projectId),
@@ -65,19 +72,20 @@ export const notificationService = {
     return notificationService.createNotifications(
       members.map(m => m.user_id),
       type,
-      messageValues
+      messageValues,
+      pubsub
     );
   },
 
   // Create notification for task assignee
-  notifyTaskAssignee: async (taskId, type, messageValues) => {
+  notifyTaskAssignee: async (taskId, type, messageValues, pubsub) => {
     const task = await prisma.tasks.findUnique({
       where: { task_id: Number(taskId) },
       select: { assignee_id: true }
     });
 
     if (task?.assignee_id) {
-      return notificationService.createNotification(task.assignee_id, type, messageValues);
+      return notificationService.createNotification(task.assignee_id, type, messageValues, pubsub);
     }
   }
 }; 
