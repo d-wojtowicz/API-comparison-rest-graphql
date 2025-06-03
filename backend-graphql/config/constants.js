@@ -58,7 +58,7 @@ const COMPLEXITY = {
   // Nested fields (multiply by depth)
   NESTED: 3,
   // Maximum allowed complexity
-  MAX: 1000,
+  MAX: 250,
   // Maximum allowed depth
   MAX_DEPTH: 5
 };
@@ -162,9 +162,51 @@ const FIELD_COMPLEXITY = {
   }
 };
 
+const FIELD_TYPE_MAP = {
+  // Query fields
+  user: 'User',
+  users: 'User',
+  project: 'Project',
+  projects: 'Project',
+  task: 'Task',
+  tasks: 'Task',
+  taskStatus: 'TaskStatus',
+  taskStatuses: 'TaskStatus',
+  taskComment: 'TaskComment',
+  taskComments: 'TaskComment',
+  taskAttachment: 'TaskAttachment',
+  taskAttachments: 'TaskAttachment',
+  notification: 'Notification',
+  notifications: 'Notification',
+  projectMember: 'ProjectMember',
+  projectMembers: 'ProjectMember',
+  
+  // Nested fields
+  user_id: 'User',
+  project_id: 'Project',
+  task_id: 'Task',
+  status_id: 'TaskStatus',
+  comment_id: 'TaskComment',
+  attachment_id: 'TaskAttachment',
+  notification_id: 'Notification',
+  
+  // Relationship fields
+  users: 'User',
+  projects: 'Project',
+  tasks: 'Task',
+  task_statuses: 'TaskStatus',
+  task_comments: 'TaskComment',
+  task_attachments: 'TaskAttachment',
+  notifications: 'Notification',
+  project_members: 'ProjectMember'
+};
+
 export const CONSTANTS = {
+  // Notification section
   NOTIFICATIONS,
   SUBSCRIPTION_CHANNEL,
+  // Complexity section
   COMPLEXITY,
-  FIELD_COMPLEXITY
+  FIELD_COMPLEXITY,
+  FIELD_TYPE_MAP
 };
