@@ -9,6 +9,7 @@ export const complexityPlugin = {
   async serverWillStart() {
     log.info(NAMESPACE, 'Complexity plugin initialized');
   },
+
   async requestDidStart() {
     return {
       async didResolveOperation({ document, operationName, variables }) {
@@ -28,10 +29,10 @@ export const complexityPlugin = {
             log.info(NAMESPACE, `Query complexity: ${complexity}, depth: ${depth}`);
           }
 
-          if (complexity > CONSTANTS.COMPLEXITY.MAX) {
-            log.error(NAMESPACE, `Query is too complex: ${complexity}. Maximum allowed complexity is ${CONSTANTS.COMPLEXITY.MAX}`);
+          if (complexity > CONSTANTS.COMPLEXITY.MAX_COMPLEXITY) {
+            log.error(NAMESPACE, `Query is too complex: ${complexity}. Maximum allowed complexity is ${CONSTANTS.COMPLEXITY.MAX_COMPLEXITY}`);
             throw new GraphQLError(
-              `Query is too complex: ${complexity}. Maximum allowed complexity is ${CONSTANTS.COMPLEXITY.MAX}`,
+              `Query is too complex: ${complexity}. Maximum allowed complexity is ${CONSTANTS.COMPLEXITY.MAX_COMPLEXITY}`,
               { extensions: { code: 'QUERY_TOO_COMPLEX' } }
             );
           }
@@ -47,6 +48,27 @@ export const complexityPlugin = {
           log.error(NAMESPACE, `Error in complexity check: ${error.message}`);
           if (error instanceof GraphQLError) {
             throw error;
+          }
+        }
+      },
+
+      async willSendResponse(requestContext) {
+        const { response } = requestContext;
+        
+        if (response.body.kind === 'single') {
+          const result = response.body.singleResult;
+          const responseSize = Buffer.byteLength(JSON.stringify(result));
+          
+          if (CONFIG.server.env !== 'PROD') {
+            log.info(NAMESPACE, `Response size: ${responseSize} bytes`);
+          }
+
+          if (responseSize > CONSTANTS.COMPLEXITY.MAX_PAYLOAD_SIZE) {
+            log.error(NAMESPACE, `Response payload size ${responseSize} bytes exceeds maximum allowed size of ${CONSTANTS.COMPLEXITY.MAX_PAYLOAD_SIZE} bytes`);
+            throw new GraphQLError(
+              `Response payload size ${responseSize} bytes exceeds maximum allowed size of ${CONSTANTS.COMPLEXITY.MAX_PAYLOAD_SIZE} bytes`,
+              { extensions: { code: 'PAYLOAD_TOO_LARGE' } }
+            );
           }
         }
       }

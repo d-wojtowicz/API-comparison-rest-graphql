@@ -58,9 +58,11 @@ const COMPLEXITY = {
   // Nested fields (multiply by depth)
   NESTED: 3,
   // Maximum allowed complexity
-  MAX: 250,
+  MAX_COMPLEXITY: 250,
   // Maximum allowed depth
-  MAX_DEPTH: 5
+  MAX_DEPTH: 5,
+  // Maximum allowed payload size
+  MAX_PAYLOAD_SIZE: 1024 * 1024 // 1MB
 };
 
 // Field complexity configuration
