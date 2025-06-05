@@ -28,8 +28,8 @@ export const commentTypeDefs = gql`
   }
 
   extend type Mutation {
-    createTaskComment(input: CreateTaskCommentInput!): TaskComment! @auth
-    updateTaskComment(id: ID!, input: UpdateTaskCommentInput!): TaskComment! @auth
-    deleteTaskComment(id: ID!): Boolean! @auth
+    createTaskComment(input: CreateTaskCommentInput!): TaskComment! @auth @rateLimit(max: 30, window: 60) # 30 comments per minute
+    updateTaskComment(id: ID!, input: UpdateTaskCommentInput!): TaskComment! @auth @rateLimit(max: 20, window: 60) # 20 updates per minute
+    deleteTaskComment(id: ID!): Boolean! @auth @rateLimit(max: 10, window: 60) # 10 deletions per minute
   }
 `; 

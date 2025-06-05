@@ -26,8 +26,8 @@ export const attachmentTypeDefs = gql`
   }
 
   extend type Mutation {
-    createTaskAttachment(input: CreateTaskAttachmentInput!): TaskAttachment! @auth
-    updateTaskAttachment(id: ID!, input: UpdateTaskAttachmentInput!): TaskAttachment! @auth
-    deleteTaskAttachment(id: ID!): Boolean! @auth
+    createTaskAttachment(input: CreateTaskAttachmentInput!): TaskAttachment! @auth @rateLimit(max: 10, window: 60)
+    updateTaskAttachment(id: ID!, input: UpdateTaskAttachmentInput!): TaskAttachment! @auth @rateLimit(max: 20, window: 60)
+    deleteTaskAttachment(id: ID!): Boolean! @auth @rateLimit(max: 10, window: 60)
   }
 `; 

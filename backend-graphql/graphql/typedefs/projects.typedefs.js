@@ -50,10 +50,10 @@ export const projectTypeDefs = gql`
   }
 
   extend type Mutation {
-    createProject(input: CreateProjectInput!): Project! @auth(requires: ADMIN)
-    updateProject(id: ID!, input: UpdateProjectInput!): Project! @auth(requires: ADMIN)
-    deleteProject(id: ID!): Boolean! @auth(requires: ADMIN)
-    addProjectMember(input: AddProjectMemberInput!): ProjectMember! @auth(requires: ADMIN)
-    removeProjectMember(project_id: ID!, user_id: ID!): Boolean! @auth(requires: ADMIN)
+    createProject(input: CreateProjectInput!): Project! @auth(requires: ADMIN) @rateLimit(max: 10, window: 300)
+    updateProject(id: ID!, input: UpdateProjectInput!): Project! @auth(requires: ADMIN) @rateLimit(max: 20, window: 300)
+    deleteProject(id: ID!): Boolean! @auth(requires: ADMIN) @rateLimit(max: 5, window: 300)
+    addProjectMember(input: AddProjectMemberInput!): ProjectMember! @auth(requires: ADMIN) @rateLimit(max: 20, window: 300)
+    removeProjectMember(project_id: ID!, user_id: ID!): Boolean! @auth(requires: ADMIN) @rateLimit(max: 20, window: 300)
   }
 `; 

@@ -21,8 +21,8 @@ export const statusTypeDefs = gql`
   }
 
   extend type Mutation {
-    createStatus(input: CreateStatusInput!): TaskStatus! @auth(requires: SUPERADMIN)
-    updateStatus(id: ID!, input: UpdateStatusInput!): TaskStatus! @auth(requires: SUPERADMIN)
-    deleteStatus(id: ID!): Boolean! @auth(requires: SUPERADMIN)
+    createStatus(input: CreateStatusInput!): TaskStatus! @auth(requires: SUPERADMIN) @rateLimit(max: 5, window: 300)
+    updateStatus(id: ID!, input: UpdateStatusInput!): TaskStatus! @auth(requires: SUPERADMIN) @rateLimit(max: 10, window: 300)
+    deleteStatus(id: ID!): Boolean! @auth(requires: SUPERADMIN) @rateLimit(max: 5, window: 300)
   }
 `; 
