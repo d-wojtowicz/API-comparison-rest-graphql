@@ -15,10 +15,10 @@ export const taskTypeDefs = gql`
 
     # Relationship fields
     status: TaskStatus!
-    project: Project!
-    assignee: User
-    comments: [TaskComment!]!
-    attachments: [TaskAttachment!]!
+    project: Project! @defer
+    assignee: User @defer
+    comments: [TaskComment!]! @defer
+    attachments: [TaskAttachment!]! @defer
   }
 
   input CreateTaskInput {
@@ -48,10 +48,10 @@ export const taskTypeDefs = gql`
   }
 
   extend type Mutation {
-    createTask(input: CreateTaskInput!): Task! @auth
-    updateTask(id: ID!, input: UpdateTaskInput!): Task! @auth
-    deleteTask(id: ID!): Boolean! @auth(requires: ADMIN)
-    assignTask(id: ID!, assigneeId: ID!): Task! @auth
-    updateTaskStatus(id: ID!, statusId: ID!): Task! @auth
+    createTask(input: CreateTaskInput!): Task! @auth @rateLimit(max: 20, window: 60)
+    updateTask(id: ID!, input: UpdateTaskInput!): Task! @auth @rateLimit(max: 30, window: 60)
+    deleteTask(id: ID!): Boolean! @auth(requires: ADMIN) @rateLimit(max: 10, window: 60)
+    assignTask(id: ID!, assigneeId: ID!): Task! @auth @rateLimit(max: 20, window: 60)
+    updateTaskStatus(id: ID!, statusId: ID!): Task! @auth @rateLimit(max: 20, window: 60)
   }
 `; 

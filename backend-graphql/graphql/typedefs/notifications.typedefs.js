@@ -9,7 +9,7 @@ export const notificationTypeDefs = gql`
     created_at: DateTime!
 
     # Relationship fields
-    user: User!
+    user: User! @defer
   }
 
   input CreateNotificationInput {
@@ -28,10 +28,10 @@ export const notificationTypeDefs = gql`
   }
 
   extend type Mutation {
-    createNotification(input: CreateNotificationInput!): Notification! @auth(requires: SUPERADMIN)
-    updateNotification(id: ID!, input: UpdateNotificationInput!): Notification! @auth
-    markAllNotificationsAsRead: Boolean! @auth
-    deleteNotification(id: ID!): Boolean! @auth
+    createNotification(input: CreateNotificationInput!): Notification! @auth(requires: SUPERADMIN) @rateLimit(max: 50, window: 60)
+    updateNotification(id: ID!, input: UpdateNotificationInput!): Notification! @auth @rateLimit(max: 30, window: 60)
+    markAllNotificationsAsRead: Boolean! @auth @rateLimit(max: 5, window: 60)
+    deleteNotification(id: ID!): Boolean! @auth @rateLimit(max: 20, window: 60)
   }
 
   extend type Subscription {

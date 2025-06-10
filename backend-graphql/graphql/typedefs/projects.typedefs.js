@@ -10,9 +10,9 @@ export const projectTypeDefs = gql`
     owner_id: ID!
 
     # Relationship fields
-    owner: User!
-    members: [ProjectMember!]!
-    tasks: [Task!]!
+    owner: User! @defer
+    members: [ProjectMember!]! @defer
+    tasks: [Task!]! @defer
   }
 
   # Junction type for many-to-many relationship between Project and User
@@ -22,8 +22,8 @@ export const projectTypeDefs = gql`
     role: String
     
     # Relationship fields to fetch full project and user data
-    project: Project!
-    user: User!
+    project: Project! @defer
+    user: User! @defer
   }
 
   input CreateProjectInput {
@@ -50,10 +50,10 @@ export const projectTypeDefs = gql`
   }
 
   extend type Mutation {
-    createProject(input: CreateProjectInput!): Project! @auth(requires: ADMIN)
-    updateProject(id: ID!, input: UpdateProjectInput!): Project! @auth(requires: ADMIN)
-    deleteProject(id: ID!): Boolean! @auth(requires: ADMIN)
-    addProjectMember(input: AddProjectMemberInput!): ProjectMember! @auth(requires: ADMIN)
-    removeProjectMember(project_id: ID!, user_id: ID!): Boolean! @auth(requires: ADMIN)
+    createProject(input: CreateProjectInput!): Project! @auth(requires: ADMIN) @rateLimit(max: 10, window: 300)
+    updateProject(id: ID!, input: UpdateProjectInput!): Project! @auth(requires: ADMIN) @rateLimit(max: 20, window: 300)
+    deleteProject(id: ID!): Boolean! @auth(requires: ADMIN) @rateLimit(max: 5, window: 300)
+    addProjectMember(input: AddProjectMemberInput!): ProjectMember! @auth(requires: ADMIN) @rateLimit(max: 20, window: 300)
+    removeProjectMember(project_id: ID!, user_id: ID!): Boolean! @auth(requires: ADMIN) @rateLimit(max: 20, window: 300)
   }
 `; 

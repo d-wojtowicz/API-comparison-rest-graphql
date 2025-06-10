@@ -16,7 +16,9 @@ import CONFIG from './config/config.js';
 import { typeDefs, resolvers } from './graphql/index.js';
 import { verifyToken, validateToken } from './utils/jwt.js';
 import { authDirectiveTransformer } from './middleware/auth-directive.js';
+import { rateLimitDirectiveTransformer } from './middleware/rate-limit-plugin.js';
 import { createLoaders } from './graphql/dataloaders.js';
+import { complexityPlugin } from './middleware/complexity-plugin.js';
 
 const NAMESPACE = CONFIG.server.env == 'PROD' ? 'SERVER' : 'server.js';
 
@@ -42,7 +44,11 @@ const schema = makeExecutableSchema({
   typeDefs,
   resolvers,
 });
-const schemaWithDirectives = authDirectiveTransformer(schema);
+const schemaWithDirectives = (
+  rateLimitDirectiveTransformer(
+    authDirectiveTransformer(schema)
+  )
+);
 
 // Set up WebSocket server for subscriptions with authentication
 const serverCleanup = useServer(
@@ -73,6 +79,8 @@ const serverCleanup = useServer(
 const server = new ApolloServer({
   schema: schemaWithDirectives,
   plugins: [
+    // Query complexity analysis plugin
+    complexityPlugin,
     // Graceful HTTP server shutdown
     ApolloServerPluginDrainHttpServer({ httpServer }),
     // Graceful WebSocket server shutdown
