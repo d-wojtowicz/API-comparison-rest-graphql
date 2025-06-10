@@ -170,25 +170,26 @@ export const statusResolvers = {
 			// Get all project IDs for these tasks
 			const projectIds = [...new Set(tasks.map(task => task.project_id))];
 			
-			// Load all project members for these projects
-			const projectMembers = await Promise.all(
-				projectIds.map(id => loaders.projectMembersByProjectLoader.load(id))
+			// Batch load all projects and their members at once
+			const [projects, projectMembers] = await Promise.all([
+				Promise.all(projectIds.map(id => loaders.projectLoader.load(id))),
+				Promise.all(projectIds.map(id => loaders.projectMembersByProjectLoader.load(id)))
+			]);
+
+			// Create a map of accessible project IDs
+			const accessibleProjectIds = new Set(
+				projects
+					.filter((project, index) => 
+						project && (
+							project.owner_id === user.userId ||
+							projectMembers[index]?.some(member => member.user_id === user.userId)
+						)
+					)
+					.map(project => project.project_id)
 			);
 
-			// Create a map of project IDs to their members
-			const projectMembersMap = projectIds.reduce((map, id, index) => {
-				map[id] = projectMembers[index];
-				return map;
-			}, {});
-
-			// Return tasks where user is either the project owner or a project member
-			return tasks.filter(task => {
-				const project = projectMembersMap[task.project_id];
-				return project && (
-					project.owner_id === user.userId ||
-					project.some(member => member.user_id === user.userId)
-				);
-			});
+			// Return only tasks from accessible projects
+			return tasks.filter(task => accessibleProjectIds.has(task.project_id));
 		}
 	}
 };

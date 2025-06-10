@@ -114,22 +114,26 @@ export const taskResolvers = {
       // For regular users, filter tasks based on project access
       const projectIds = [...new Set(tasks.map(task => task.project_id))];
       
-      // Check which projects the user has access to
-      const projects = await Promise.all(
-        projectIds.map(id => loaders.projectLoader.load(id))
-      );
-      
-      const accessibleProjectIds = projects
-        .filter(project => 
-          project && (
-            project.owner_id === user.userId ||
-            project.project_members?.some(member => member.user_id === user.userId)
+      // Batch load all projects and their members at once
+      const [projects, projectMembers] = await Promise.all([
+        Promise.all(projectIds.map(id => loaders.projectLoader.load(id))),
+        Promise.all(projectIds.map(id => loaders.projectMembersByProjectLoader.load(id)))
+      ]);
+
+      // Create a map of accessible project IDs
+      const accessibleProjectIds = new Set(
+        projects
+          .filter((project, index) => 
+            project && (
+              project.owner_id === user.userId ||
+              projectMembers[index]?.some(member => member.user_id === user.userId)
+            )
           )
-        )
-        .map(project => project.project_id);
+          .map(project => project.project_id)
+      );
 
       // Return only tasks from accessible projects
-      return tasks.filter(task => accessibleProjectIds.includes(task.project_id));
+      return tasks.filter(task => accessibleProjectIds.has(task.project_id));
     }
   },
 
