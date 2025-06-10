@@ -15,10 +15,10 @@ export const taskTypeDefs = gql`
 
     # Relationship fields
     status: TaskStatus!
-    project: Project!
-    assignee: User
-    comments: [TaskComment!]!
-    attachments: [TaskAttachment!]!
+    project: Project! @defer
+    assignee: User @defer
+    comments: [TaskComment!]! @defer
+    attachments: [TaskAttachment!]! @defer
   }
 
   input CreateTaskInput {

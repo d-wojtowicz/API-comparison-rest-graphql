@@ -10,9 +10,9 @@ export const projectTypeDefs = gql`
     owner_id: ID!
 
     # Relationship fields
-    owner: User!
-    members: [ProjectMember!]!
-    tasks: [Task!]!
+    owner: User! @defer
+    members: [ProjectMember!]! @defer
+    tasks: [Task!]! @defer
   }
 
   # Junction type for many-to-many relationship between Project and User
@@ -22,8 +22,8 @@ export const projectTypeDefs = gql`
     role: String
     
     # Relationship fields to fetch full project and user data
-    project: Project!
-    user: User!
+    project: Project! @defer
+    user: User! @defer
   }
 
   input CreateProjectInput {

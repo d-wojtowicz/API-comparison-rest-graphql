@@ -9,8 +9,8 @@ export const commentTypeDefs = gql`
     created_at: DateTime!
     
     # Relationship fields
-    task: Task!
-    user: User!
+    task: Task! @defer
+    user: User! @defer
   }
 
   input CreateTaskCommentInput {

@@ -18,6 +18,7 @@ export const baseTypeDefs = gql`
   # Custom directives
   directive @auth(requires: Role = USER) on FIELD_DEFINITION
   directive @rateLimit(max: Int!, window: Int!) on FIELD_DEFINITION
+  directive @defer on FIELD_DEFINITION
 
   enum Role {
     USER

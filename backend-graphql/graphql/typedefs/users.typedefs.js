@@ -12,11 +12,11 @@ export const userTypeDefs = gql`
     password_hash: String! @auth(requires: SUPERADMIN)
 
     # Relationship fields
-    projects: [Project!]!
-    memberOf: [ProjectMember!]!
-    tasks: [Task!]!
-    notifications: [Notification!]!
-    comments: [TaskComment!]!
+    projects: [Project!]! @defer
+    memberOf: [ProjectMember!]! @defer
+    tasks: [Task!]! @defer
+    notifications: [Notification!]! @defer
+    comments: [TaskComment!]! @defer
   }
 
   # Input types

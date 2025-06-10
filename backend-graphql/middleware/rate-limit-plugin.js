@@ -59,7 +59,7 @@ export function rateLimitDirectiveTransformer(schema) {
 
           // Check if rate limit exceeded
           if (rateLimitData.count > max) {
-            const clientType = context.user ? 'user' : 'IP address';
+            const clientType = context.user ? 'user' : 'guest';
             const clientIdentifier = context.user ? context.user.userId : context.req?.ip || context.connectionParams?.ip || 'unknown';
             
             log.error(NAMESPACE, `Rate limit exceeded for ${clientType} ${clientIdentifier} on field ${info.fieldName}`);

@@ -8,7 +8,7 @@ export const attachmentTypeDefs = gql`
     uploaded_at: DateTime!
 
     # Relationship fields
-    task: Task!
+    task: Task! @defer
   }
 
   input CreateTaskAttachmentInput {

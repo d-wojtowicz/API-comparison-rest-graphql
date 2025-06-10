@@ -9,7 +9,7 @@ export const notificationTypeDefs = gql`
     created_at: DateTime!
 
     # Relationship fields
-    user: User!
+    user: User! @defer
   }
 
   input CreateNotificationInput {
