@@ -170,18 +170,19 @@ export const statusResolvers = {
 			// Get all project IDs for these tasks
 			const projectIds = [...new Set(tasks.map(task => task.project_id))];
 			
-			// Batch load all projects at once
-			const projects = await Promise.all(
-				projectIds.map(id => loaders.projectLoader.load(id))
-			);
+			// Batch load all projects and their members at once
+			const [projects, projectMembers] = await Promise.all([
+				Promise.all(projectIds.map(id => loaders.projectLoader.load(id))),
+				Promise.all(projectIds.map(id => loaders.projectMembersByProjectLoader.load(id)))
+			]);
 
 			// Create a map of accessible project IDs
 			const accessibleProjectIds = new Set(
 				projects
-					.filter(project => 
+					.filter((project, index) => 
 						project && (
 							project.owner_id === user.userId ||
-							project.project_members?.some(member => member.user_id === user.userId)
+							projectMembers[index]?.some(member => member.user_id === user.userId)
 						)
 					)
 					.map(project => project.project_id)
