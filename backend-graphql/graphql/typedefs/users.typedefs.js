@@ -4,6 +4,8 @@ export const userTypeDefs = gql`
   # User type with field-level permissions
   type User {
     user_id: ID!
+    first_name: String @deprecated(reason: "This field will be removed in version 2.0 due to not being used")
+    last_name: String @deprecated(reason: "This field will be removed in version 2.0 due to not being used")
     username: String!
     email: String!
     role: String! @auth(requires: ADMIN)
