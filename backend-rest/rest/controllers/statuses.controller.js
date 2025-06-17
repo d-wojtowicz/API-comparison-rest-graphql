@@ -8,7 +8,7 @@ const NAMESPACE = CONFIG.server.env === 'PROD' ? 'STATUS-CONTROLLER' : 'rest/con
 const getAllStatuses = async (req, res) => {
   try {
     const statuses = await statusService.getAllStatuses();
-    res.json(statuses);
+    res.status(200).json(statuses);
   } catch (error) {
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }
@@ -20,7 +20,7 @@ const createStatus = async (req, res) => {
     res.status(201).json(status);
   } catch (error) {
     if (error.message === 'Status with this name already exists') {
-      return res.status(400).json({ message: error.message });
+      return res.status(409).json({ message: error.message });
     }
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }
@@ -32,10 +32,10 @@ const updateStatus = async (req, res) => {
     if (!status) {
       return res.status(404).json({ message: 'Status not found' });
     }
-    res.json(status);
+    res.status(200).json(status);
   } catch (error) {
     if (error.message === 'Status with this name already exists') {
-      return res.status(400).json({ message: error.message });
+      return res.status(409).json({ message: error.message });
     }
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }
@@ -44,14 +44,14 @@ const updateStatus = async (req, res) => {
 const deleteStatus = async (req, res) => {
   try {
     await statusService.deleteStatus(req.params.id);
-    res.json({ message: 'Status deleted successfully' });
+    res.status(200).json({ message: 'Status deleted successfully' });
   } catch (error) {
     if (error.message === 'Cannot delete status that is being used by tasks') {
-      return res.status(400).json({ message: error.message });
+      return res.status(409).json({ message: error.message });
     }
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }
-}; 
+};
 
 export default {
   getAllStatuses,
