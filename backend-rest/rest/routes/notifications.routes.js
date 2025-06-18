@@ -1,28 +1,28 @@
 import express from 'express';
 import controller from '../controllers/notifications.controller.js';
-// TODO: Import JWT verifyToken
+import { verifyTokenMiddleware, requireAdmin } from '../../middleware/auth.middleware.js';
 
 const router = express.Router();
 
 // Get user's notifications
-router.get('/my', controller.getMyNotifications);
+router.get('/my', verifyTokenMiddleware, controller.getMyNotifications);
 
 // Get unread notifications count
-router.get('/unread/count', controller.getUnreadNotificationsCount);
+router.get('/unread/count', verifyTokenMiddleware, controller.getUnreadNotificationsCount);
 
 // Get notification by ID
-router.get('/:id', controller.getNotificationById);
+router.get('/:id', verifyTokenMiddleware, controller.getNotificationById);
 
 // Create new notification (admin only)
-router.post('/', controller.createNotification);
+router.post('/', verifyTokenMiddleware, requireAdmin, controller.createNotification);
 
 // Update notification (mark as read)
-router.put('/:id', controller.updateNotification);
+router.put('/:id', verifyTokenMiddleware, controller.updateNotification);
 
 // Mark all notifications as read
-router.put('/mark-all-read', controller.markAllNotificationsAsRead);
+router.put('/mark-all-read', verifyTokenMiddleware, controller.markAllNotificationsAsRead);
 
 // Delete notification
-router.delete('/:id', controller.deleteNotification);
+router.delete('/:id', verifyTokenMiddleware, controller.deleteNotification);
 
 export default router; 

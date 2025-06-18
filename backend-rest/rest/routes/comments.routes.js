@@ -1,19 +1,19 @@
 import express from 'express';
 import controller from '../controllers/comments.controller.js';
-// TODO: Import JWT verifyToken
+import { verifyTokenMiddleware } from '../../middleware/auth.middleware.js';
 
 const router = express.Router();
 
 // Get comment by ID
-router.get('/:id', controller.getCommentById);
+router.get('/:id', verifyTokenMiddleware, controller.getCommentById);
 
 // Create new comment
-router.post('/', controller.createComment);
+router.post('/', verifyTokenMiddleware, controller.createComment);
 
 // Update comment
-router.put('/:id', controller.updateComment);
+router.put('/:id', verifyTokenMiddleware, controller.updateComment);
 
 // Delete comment
-router.delete('/:id', controller.deleteComment);
+router.delete('/:id', verifyTokenMiddleware, controller.deleteComment);
 
 export default router; 

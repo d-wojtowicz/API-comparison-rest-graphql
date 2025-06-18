@@ -1,19 +1,19 @@
 import express from 'express';
+import { verifyTokenMiddleware, requireAdmin } from '../../middleware/auth.middleware.js';
 import controller from '../controllers/statuses.controller.js';
-// TODO: Import JWT verifyToken
 
 const router = express.Router();
 
 // Get all statuses (admin only)
-router.get('/', controller.getAllStatuses);
+router.get('/', verifyTokenMiddleware, requireAdmin, controller.getAllStatuses);
 
 // Create new status
-router.post('/', controller.createStatus);
+router.post('/', verifyTokenMiddleware, requireAdmin, controller.createStatus);
 
 // Update status
-router.put('/:id', controller.updateStatus);
+router.put('/:id', verifyTokenMiddleware, requireAdmin, controller.updateStatus);
 
 // Delete status
-router.delete('/:id', controller.deleteStatus);
+router.delete('/:id', verifyTokenMiddleware, requireAdmin, controller.deleteStatus);
 
 export default router; 

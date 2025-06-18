@@ -1,19 +1,19 @@
 import express from 'express';
 import controller from '../controllers/attachments.controller.js';
-// TODO: Import JWT verifyToken
+import { verifyTokenMiddleware } from '../../middleware/auth.middleware.js';
 
 const router = express.Router();
 
 // Get attachment by ID
-router.get('/:id', controller.getAttachmentById);
+router.get('/:id', verifyTokenMiddleware, controller.getAttachmentById);
 
 // Create new attachment
-router.post('/', controller.createAttachment);
+router.post('/', verifyTokenMiddleware, controller.createAttachment);
 
 // Update attachment
-router.put('/:id', controller.updateAttachment);
+router.put('/:id', verifyTokenMiddleware, controller.updateAttachment);
 
 // Delete attachment
-router.delete('/:id', controller.deleteAttachment);
+router.delete('/:id', verifyTokenMiddleware, controller.deleteAttachment);
 
 export default router; 
