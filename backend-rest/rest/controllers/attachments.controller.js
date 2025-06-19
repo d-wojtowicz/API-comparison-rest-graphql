@@ -34,11 +34,14 @@ const getTaskAttachments = async (req, res) => {
 
 const createAttachment = async (req, res) => {
   try {
-    const attachment = await attachmentService.createAttachment(req.body);
+    const attachment = await attachmentService.createAttachment(req.body, req.user.userId);
     res.status(201).json(attachment);
   } catch (error) {
     if (error.message === 'Task not found') {
       return res.status(404).json({ message: error.message });
+    }
+    if (error.message === 'Not authorized to create attachments for this task') {
+      return res.status(403).json({ message: error.message });
     }
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }
@@ -46,23 +49,29 @@ const createAttachment = async (req, res) => {
 
 const updateAttachment = async (req, res) => {
   try {
-    const attachment = await attachmentService.updateAttachment(req.params.id, req.body);
+    const attachment = await attachmentService.updateAttachment(req.params.id, req.body, req.user.userId);
     if (!attachment) {
       return res.status(404).json({ message: 'Attachment not found' });
     }
     res.status(200).json(attachment);
   } catch (error) {
+    if (error.message === 'Not authorized to update this attachment') {
+      return res.status(403).json({ message: error.message });
+    }
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }
 };
 
 const deleteAttachment = async (req, res) => {
   try {
-    await attachmentService.deleteAttachment(req.params.id);
+    await attachmentService.deleteAttachment(req.params.id, req.user.userId);
     res.status(200).json({ message: 'Attachment deleted successfully' });
   } catch (error) {
     if (error.message === 'Attachment not found') {
       return res.status(404).json({ message: error.message });
+    }
+    if (error.message === 'Not authorized to delete this attachment') {
+      return res.status(403).json({ message: error.message });
     }
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }

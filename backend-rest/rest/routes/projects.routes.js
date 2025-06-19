@@ -1,34 +1,34 @@
 import express from 'express';
-import controller from '../controllers/projects.controller.js';
+import projectsController from '../controllers/projects.controller.js';
 import { verifyTokenMiddleware, requireAdmin } from '../../middleware/auth.middleware.js';
 
 const router = express.Router();
 
 // Get project by ID
-router.get('/:id', verifyTokenMiddleware, controller.getProjectById);
+router.get('/:id', verifyTokenMiddleware, projectsController.getProjectById);
 
 // Get all projects (admin only)
-router.get('/', verifyTokenMiddleware, requireAdmin, controller.getAllProjects);
+router.get('/', verifyTokenMiddleware, requireAdmin, projectsController.getAllProjects);
 
 // Get user's projects
-router.get('/my', verifyTokenMiddleware, controller.getMyProjects);
+router.get('/my', verifyTokenMiddleware, projectsController.getMyProjects);
 
 // Get project members
-router.get('/:id/members', verifyTokenMiddleware, controller.getProjectMembers);
+router.get('/:id/members', verifyTokenMiddleware, projectsController.getProjectMembers);
 
 // Create new project
-router.post('/', verifyTokenMiddleware, controller.createProject);
+router.post('/', verifyTokenMiddleware, projectsController.createProject);
 
 // Update project
-router.put('/:id', verifyTokenMiddleware, controller.updateProject);
+router.put('/:id', verifyTokenMiddleware, projectsController.updateProject);
 
 // Delete project
-router.delete('/:id', verifyTokenMiddleware, controller.deleteProject);
+router.delete('/:id', verifyTokenMiddleware, projectsController.deleteProject);
 
 // Add project member
-router.post('/:id/members', verifyTokenMiddleware, controller.addProjectMember);
+router.post('/:id/members', verifyTokenMiddleware, projectsController.addProjectMember);
 
 // Remove project member
-router.delete('/:id/members/:userId', verifyTokenMiddleware, controller.removeProjectMember);
+router.delete('/:id/members/:userId', verifyTokenMiddleware, projectsController.removeProjectMember);
 
 export default router; 

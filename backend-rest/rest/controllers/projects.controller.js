@@ -94,20 +94,18 @@ const deleteProject = async (req, res) => {
 
 const addProjectMember = async (req, res) => {
   try {
-    const member = await projectService.addProjectMember(req.params.id, req.body, req.user.userId);
+    const { userId, role } = req.body;
+    const member = await projectService.addProjectMember(req.params.id, userId, role, req.user.userId);
     res.status(201).json(member);
   } catch (error) {
-    if (error.message === 'Project not found') {
+    if (error.message === 'Project not found' || error.message === 'User not found') {
       return res.status(404).json({ message: error.message });
-    }
-    if (error.message === 'User not found') {
-      return res.status(404).json({ message: error.message });
-    }
-    if (error.message === 'User is already a member of this project') {
-      return res.status(409).json({ message: error.message });
     }
     if (error.message === 'Not authorized to add members to this project') {
       return res.status(403).json({ message: error.message });
+    }
+    if (error.message === 'User is already a member of this project') {
+      return res.status(409).json({ message: error.message });
     }
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }
@@ -121,11 +119,11 @@ const removeProjectMember = async (req, res) => {
     if (error.message === 'Project not found') {
       return res.status(404).json({ message: error.message });
     }
-    if (error.message === 'Member is not part of this project') {
-      return res.status(404).json({ message: error.message });
-    }
     if (error.message === 'Not authorized to remove members from this project') {
       return res.status(403).json({ message: error.message });
+    }
+    if (error.message === 'User is not a member of this project') {
+      return res.status(404).json({ message: error.message });
     }
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }

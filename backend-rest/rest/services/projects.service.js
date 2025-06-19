@@ -1,6 +1,7 @@
 import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
+import { isProjectOwner, isProjectMember } from '../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'PROJECT-SERVICE' : 'rest/services/projects.service.js';
 
@@ -14,16 +15,9 @@ const getProjectById = async (id, userId) => {
       throw new Error('Project not found');
     }
 
-    // Check if user is owner, member, or admin
-    const isOwner = project.owner_id === userId;
-    const isMember = await prisma.project_members.findUnique({
-      where: {
-        project_id_user_id: {
-          project_id: Number(id),
-          user_id: userId
-        }
-      }
-    });
+    // Check if user is owner, member, or admin (admin check is handled by middleware)
+    const isOwner = await isProjectOwner(userId, Number(id));
+    const isMember = await isProjectMember(userId, Number(id));
 
     if (!isOwner && !isMember) {
       throw new Error('Not authorized to access this project');
@@ -85,16 +79,9 @@ const getProjectMembers = async (projectId, userId) => {
       throw new Error('Project not found');
     }
 
-    // Check if user is owner, member, or admin
-    const isOwner = project.owner_id === userId;
-    const isMember = await prisma.project_members.findUnique({
-      where: {
-        project_id_user_id: {
-          project_id: Number(projectId),
-          user_id: userId
-        }
-      }
-    });
+    // Check if user is owner, member, or admin (admin check is handled by middleware)
+    const isOwner = await isProjectOwner(userId, Number(projectId));
+    const isMember = await isProjectMember(userId, Number(projectId));
 
     if (!isOwner && !isMember) {
       throw new Error('Not authorized to view project members');
@@ -150,8 +137,9 @@ const updateProject = async (id, projectData, userId) => {
       throw new Error('Project not found');
     }
 
-    // Only owner or admin can update project
-    if (project.owner_id !== userId) {
+    // Only owner can update project (admin check is handled by middleware)
+    const isOwner = await isProjectOwner(userId, Number(id));
+    if (!isOwner) {
       throw new Error('Not authorized to update this project');
     }
 
@@ -181,8 +169,9 @@ const deleteProject = async (id, userId) => {
       throw new Error('Project not found');
     }
 
-    // Only owner or admin can delete project
-    if (project.owner_id !== userId) {
+    // Only owner can delete project (admin check is handled by middleware)
+    const isOwner = await isProjectOwner(userId, Number(id));
+    if (!isOwner) {
       throw new Error('Not authorized to delete this project');
     }
 
@@ -198,10 +187,8 @@ const deleteProject = async (id, userId) => {
   }
 };
 
-const addProjectMember = async (projectId, memberData, userId) => {
+const addProjectMember = async (projectId, memberUserId, role, userId) => {
   try {
-    const { user_id, role } = memberData;
-
     const project = await prisma.projects.findUnique({
       where: { project_id: Number(projectId) }
     });
@@ -210,14 +197,15 @@ const addProjectMember = async (projectId, memberData, userId) => {
       throw new Error('Project not found');
     }
 
-    // Only owner or admin can add members
-    if (project.owner_id !== userId) {
+    // Only owner can add members (admin check is handled by middleware)
+    const isOwner = await isProjectOwner(userId, Number(projectId));
+    if (!isOwner) {
       throw new Error('Not authorized to add members to this project');
     }
 
     // Check if user exists
     const user = await prisma.users.findUnique({
-      where: { user_id: Number(user_id) }
+      where: { user_id: Number(memberUserId) }
     });
 
     if (!user) {
@@ -225,12 +213,10 @@ const addProjectMember = async (projectId, memberData, userId) => {
     }
 
     // Check if user is already a member
-    const existingMember = await prisma.project_members.findUnique({
+    const existingMember = await prisma.project_members.findFirst({
       where: {
-        project_id_user_id: {
-          project_id: Number(projectId),
-          user_id: Number(user_id)
-        }
+        project_id: Number(projectId),
+        user_id: Number(memberUserId)
       }
     });
 
@@ -241,8 +227,11 @@ const addProjectMember = async (projectId, memberData, userId) => {
     return await prisma.project_members.create({
       data: {
         project_id: Number(projectId),
-        user_id: Number(user_id),
-        role
+        user_id: Number(memberUserId),
+        role: role || 'member'
+      },
+      include: {
+        users: true
       }
     });
   } catch (error) {
@@ -261,23 +250,26 @@ const removeProjectMember = async (projectId, memberUserId, userId) => {
       throw new Error('Project not found');
     }
 
-    // Only owner or admin can remove members
-    if (project.owner_id !== userId) {
+    // Only owner can remove members (admin check is handled by middleware)
+    const isOwner = await isProjectOwner(userId, Number(projectId));
+    if (!isOwner) {
       throw new Error('Not authorized to remove members from this project');
     }
 
-    // Check if the member exists
-    const member = await prisma.project_members.findUnique({
+    // Prevent removing the project owner
+    if (Number(memberUserId) === project.owner_id) {
+      throw new Error('Cannot remove project owner');
+    }
+
+    const member = await prisma.project_members.findFirst({
       where: {
-        project_id_user_id: {
-          project_id: Number(projectId),
-          user_id: Number(memberUserId)
-        }
+        project_id: Number(projectId),
+        user_id: Number(memberUserId)
       }
     });
 
     if (!member) {
-      throw new Error('Member is not part of this project');
+      throw new Error('User is not a member of this project');
     }
 
     await prisma.project_members.delete({

@@ -1,6 +1,7 @@
 import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
+import { isProjectOwner, isProjectMember, hasTaskAccess, isSelf } from '../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'TASK-SERVICE' : 'rest/services/tasks.service.js';
 
@@ -14,27 +15,9 @@ const getTaskById = async (id, userId) => {
       throw new Error('Task not found');
     }
 
-    // Check if user has access to the project
-    const project = await prisma.projects.findUnique({
-      where: { project_id: task.project_id }
-    });
-
-    if (!project) {
-      throw new Error('Project not found');
-    }
-
-    // Check if user is project owner, member, or admin
-    const isOwner = project.owner_id === userId;
-    const isMember = await prisma.project_members.findUnique({
-      where: {
-        project_id_user_id: {
-          project_id: task.project_id,
-          user_id: userId
-        }
-      }
-    });
-
-    if (!isOwner && !isMember) {
+    // Check if user has access to the task (admin check is handled by middleware)
+    const hasAccess = await hasTaskAccess({ userId }, task);
+    if (!hasAccess) {
       throw new Error('Not authorized to view this task');
     }
 
@@ -47,24 +30,9 @@ const getTaskById = async (id, userId) => {
 
 const getTasksByProject = async (projectId, userId) => {
   try {
-    // Check if user has access to the project
-    const project = await prisma.projects.findUnique({
-      where: { project_id: Number(projectId) }
-    });
-
-    if (!project) {
-      throw new Error('Project not found');
-    }
-
-    const isOwner = project.owner_id === userId;
-    const isMember = await prisma.project_members.findUnique({
-      where: {
-        project_id_user_id: {
-          project_id: Number(projectId),
-          user_id: userId
-        }
-      }
-    });
+    // Check if user has access to the project (admin check is handled by middleware)
+    const isOwner = await isProjectOwner(userId, Number(projectId));
+    const isMember = await isProjectMember(userId, Number(projectId));
 
     if (!isOwner && !isMember) {
       throw new Error('Not authorized to view tasks in this project');
@@ -81,8 +49,8 @@ const getTasksByProject = async (projectId, userId) => {
 
 const getTasksByAssignee = async (assigneeId, userId) => {
   try {
-    // Users can only view their own assigned tasks unless they're admin
-    if (Number(assigneeId) !== userId) {
+    // Users can only view their own assigned tasks unless they're admin (admin check is handled by middleware)
+    if (!isSelf({ userId }, Number(assigneeId))) {
       throw new Error('Not authorized to view these tasks');
     }
 
@@ -103,30 +71,17 @@ const getTasksByStatus = async (statusId, userId) => {
 
     if (!tasks.length) return [];
 
-    // For regular users, filter tasks based on project access
+    // For regular users, filter tasks based on project access (admin check is handled by middleware)
     const projectIds = [...new Set(tasks.map(task => task.project_id))];
     
     const accessibleProjectIds = new Set();
     
     for (const projectId of projectIds) {
-      const project = await prisma.projects.findUnique({
-        where: { project_id: projectId }
-      });
+      const isOwner = await isProjectOwner(userId, projectId);
+      const isMember = await isProjectMember(userId, projectId);
 
-      if (project) {
-        const isOwner = project.owner_id === userId;
-        const isMember = await prisma.project_members.findUnique({
-          where: {
-            project_id_user_id: {
-              project_id: projectId,
-              user_id: userId
-            }
-          }
-        });
-
-        if (isOwner || isMember) {
-          accessibleProjectIds.add(projectId);
-        }
+      if (isOwner || isMember) {
+        accessibleProjectIds.add(projectId);
       }
     }
 
@@ -138,28 +93,48 @@ const getTasksByStatus = async (statusId, userId) => {
   }
 };
 
+const getTaskComments = async (taskId, userId) => {
+  try {
+    // Check if user has access to the task (admin check is handled by middleware)
+    const task = await prisma.tasks.findUnique({
+      where: { task_id: Number(taskId) }
+    });
+
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    const hasAccess = await hasTaskAccess({ userId }, task);
+    if (!hasAccess) {
+      throw new Error('Not authorized to view comments for this task');
+    }
+
+    return await prisma.task_comments.findMany({
+      where: { task_id: Number(taskId) },
+      include: {
+        users: {
+          select: {
+            user_id: true,
+            username: true,
+            email: true
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+  } catch (error) {
+    log.error(NAMESPACE, `getTaskComments: ${error.message}`);
+    throw error;
+  }
+};
+
 const createTask = async (taskData, userId) => {
   try {
     const { project_id, status_id, assignee_id, ...otherFields } = taskData;
 
-    // Check if user has access to the project
-    const project = await prisma.projects.findUnique({
-      where: { project_id: Number(project_id) }
-    });
-
-    if (!project) {
-      throw new Error('Project not found');
-    }
-
-    const isOwner = project.owner_id === userId;
-    const isMember = await prisma.project_members.findUnique({
-      where: {
-        project_id_user_id: {
-          project_id: Number(project_id),
-          user_id: userId
-        }
-      }
-    });
+    // Check if user has access to the project (admin check is handled by middleware)
+    const isOwner = await isProjectOwner(userId, Number(project_id));
+    const isMember = await isProjectMember(userId, Number(project_id));
 
     if (!isOwner && !isMember) {
       throw new Error('Not authorized to create tasks in this project');
@@ -167,16 +142,8 @@ const createTask = async (taskData, userId) => {
 
     // If assignee is specified, verify they are a project member
     if (assignee_id) {
-      const assigneeMember = await prisma.project_members.findUnique({
-        where: {
-          project_id_user_id: {
-            project_id: Number(project_id),
-            user_id: Number(assignee_id)
-          }
-        }
-      });
-
-      if (!assigneeMember) {
+      const isAssigneeMember = await isProjectMember(Number(assignee_id), Number(project_id));
+      if (!isAssigneeMember) {
         throw new Error('Assignee must be a member of the project');
       }
     }
@@ -206,41 +173,19 @@ const updateTask = async (id, taskData, userId) => {
       throw new Error('Task not found');
     }
 
-    // Check if user has access to the project
-    const project = await prisma.projects.findUnique({
-      where: { project_id: task.project_id }
-    });
-
-    if (!project) {
-      throw new Error('Project not found');
-    }
-
-    const isOwner = project.owner_id === userId;
-    const isMember = await prisma.project_members.findUnique({
-      where: {
-        project_id_user_id: {
-          project_id: task.project_id,
-          user_id: userId
-        }
-      }
-    });
-
-    if (!isOwner && !isMember) {
+    // Check if user has access to the task (admin check is handled by middleware)
+    const hasAccess = await hasTaskAccess({ userId }, task);
+    if (!hasAccess) {
       throw new Error('Not authorized to update this task');
     }
 
-    // If assignee is specified, verify they are a project member
-    if (taskData.assignee_id) {
-      const assigneeMember = await prisma.project_members.findUnique({
-        where: {
-          project_id_user_id: {
-            project_id: task.project_id,
-            user_id: Number(taskData.assignee_id)
-          }
-        }
-      });
+    const { project_id, status_id, assignee_id, ...otherFields } = taskData;
 
-      if (!assigneeMember) {
+    // If assignee is specified, verify they are a project member
+    if (assignee_id) {
+      const projectId = project_id || task.project_id;
+      const isAssigneeMember = await isProjectMember(Number(assignee_id), Number(projectId));
+      if (!isAssigneeMember) {
         throw new Error('Assignee must be a member of the project');
       }
     }
@@ -248,9 +193,11 @@ const updateTask = async (id, taskData, userId) => {
     return await prisma.tasks.update({
       where: { task_id: Number(id) },
       data: {
-        ...taskData,
-        status_id: taskData.status_id ? Number(taskData.status_id) : undefined,
-        assignee_id: taskData.assignee_id ? Number(taskData.assignee_id) : null,
+        ...otherFields,
+        project_id: project_id ? Number(project_id) : undefined,
+        status_id: status_id ? Number(status_id) : undefined,
+        assignee_id: assignee_id ? Number(assignee_id) : null,
+        due_date: otherFields.due_date ? new Date(otherFields.due_date) : undefined,
         updated_at: new Date()
       }
     });
@@ -270,16 +217,9 @@ const deleteTask = async (id, userId) => {
       throw new Error('Task not found');
     }
 
-    // Check if user is project owner or admin
-    const project = await prisma.projects.findUnique({
-      where: { project_id: task.project_id }
-    });
-
-    if (!project) {
-      throw new Error('Project not found');
-    }
-
-    if (project.owner_id !== userId) {
+    // Check if user has access to the task (admin check is handled by middleware)
+    const hasAccess = await hasTaskAccess({ userId }, task);
+    if (!hasAccess) {
       throw new Error('Not authorized to delete this task');
     }
 
@@ -416,6 +356,7 @@ export default {
   getTasksByProject,
   getTasksByAssignee,
   getTasksByStatus,
+  getTaskComments,
   createTask,
   updateTask,
   deleteTask,

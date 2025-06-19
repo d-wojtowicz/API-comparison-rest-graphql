@@ -1,19 +1,22 @@
 import express from 'express';
-import { verifyTokenMiddleware, requireAdmin } from '../../middleware/auth.middleware.js';
-import controller from '../controllers/statuses.controller.js';
+import { verifyTokenMiddleware, requireAdmin, requireSuperAdmin } from '../../middleware/auth.middleware.js';
+import statusesController from '../controllers/statuses.controller.js';
 
 const router = express.Router();
 
+// Get status by ID
+router.get('/:id', verifyTokenMiddleware, statusesController.getStatusById);
+
 // Get all statuses (admin only)
-router.get('/', verifyTokenMiddleware, requireAdmin, controller.getAllStatuses);
+router.get('/', verifyTokenMiddleware, requireAdmin, statusesController.getAllStatuses);
 
-// Create new status
-router.post('/', verifyTokenMiddleware, requireAdmin, controller.createStatus);
+// Create new status (superadmin only)
+router.post('/', verifyTokenMiddleware, requireSuperAdmin, statusesController.createStatus);
 
-// Update status
-router.put('/:id', verifyTokenMiddleware, requireAdmin, controller.updateStatus);
+// Update status (superadmin only)
+router.put('/:id', verifyTokenMiddleware, requireSuperAdmin, statusesController.updateStatus);
 
-// Delete status
-router.delete('/:id', verifyTokenMiddleware, requireAdmin, controller.deleteStatus);
+// Delete status (superadmin only)
+router.delete('/:id', verifyTokenMiddleware, requireSuperAdmin, statusesController.deleteStatus);
 
 export default router; 

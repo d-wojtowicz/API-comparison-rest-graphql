@@ -1,22 +1,22 @@
 import express from 'express';
-import controller from '../controllers/attachments.controller.js';
+import attachmentsController from '../controllers/attachments.controller.js';
 import { verifyTokenMiddleware } from '../../middleware/auth.middleware.js';
 
 const router = express.Router();
 
 // Get attachment by ID
-router.get('/:id', verifyTokenMiddleware, controller.getAttachmentById);
+router.get('/:id', verifyTokenMiddleware, attachmentsController.getAttachmentById);
 
 // Get attachments by task
-router.get('/task/:taskId', verifyTokenMiddleware, controller.getTaskAttachments);
+router.get('/task/:taskId', verifyTokenMiddleware, attachmentsController.getTaskAttachments);
 
 // Create new attachment
-router.post('/', verifyTokenMiddleware, controller.createAttachment);
+router.post('/', verifyTokenMiddleware, attachmentsController.createAttachment);
 
 // Update attachment
-router.put('/:id', verifyTokenMiddleware, controller.updateAttachment);
+router.put('/:id', verifyTokenMiddleware, attachmentsController.updateAttachment);
 
 // Delete attachment
-router.delete('/:id', verifyTokenMiddleware, controller.deleteAttachment);
+router.delete('/:id', verifyTokenMiddleware, attachmentsController.deleteAttachment);
 
 export default router; 

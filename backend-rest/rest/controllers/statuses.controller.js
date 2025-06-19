@@ -14,6 +14,20 @@ const getAllStatuses = async (req, res) => {
   }
 };
 
+const getStatusById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const status = await statusService.getStatusById(id);
+    res.status(200).json(status);
+  } catch (error) {
+    if (error.message === 'Status not found') {
+      res.status(404).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
+    }
+  }
+};
+
 const createStatus = async (req, res) => {
   try {
     const status = await statusService.createStatus(req.body);
@@ -55,6 +69,7 @@ const deleteStatus = async (req, res) => {
 
 export default {
   getAllStatuses,
+  getStatusById,
   createStatus,
   updateStatus,
   deleteStatus

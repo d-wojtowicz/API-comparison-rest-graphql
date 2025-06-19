@@ -59,6 +59,21 @@ const getTasksByStatus = async (req, res) => {
   }
 };
 
+const getTaskComments = async (req, res) => {
+  try {
+    const comments = await taskService.getTaskComments(req.params.taskId, req.user.userId);
+    res.status(200).json(comments);
+  } catch (error) {
+    if (error.message === 'Task not found') {
+      return res.status(404).json({ message: error.message });
+    }
+    if (error.message === 'Not authorized to view comments for this task') {
+      return res.status(403).json({ message: error.message });
+    }
+    res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
+  }
+};
+
 const createTask = async (req, res) => {
   try {
     const task = await taskService.createTask(req.body, req.user.userId);
@@ -167,5 +182,6 @@ export default {
   updateTask,
   deleteTask,
   assignTask,
-  updateTaskStatus
+  updateTaskStatus,
+  getTaskComments
 }; 

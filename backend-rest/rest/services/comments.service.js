@@ -1,6 +1,7 @@
 import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
+import { hasTaskAccess, isSelf } from '../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'COMMENT-SERVICE' : 'rest/services/comments.service.js';
 
@@ -15,65 +16,22 @@ const getCommentById = async (id) => {
   }
 };
 
-const getTaskComments = async (taskId, userId) => {
-  try {
-    // Check if user has access to the task's project
-    const task = await prisma.tasks.findUnique({
-      where: { task_id: Number(taskId) },
-      include: {
-        projects: true
-      }
-    });
-
-    if (!task) {
-      throw new Error('Task not found');
-    }
-
-    const project = task.projects;
-    const isOwner = project.owner_id === userId;
-    const isMember = await prisma.project_members.findUnique({
-      where: {
-        project_id_user_id: {
-          project_id: project.project_id,
-          user_id: userId
-        }
-      }
-    });
-
-    if (!isOwner && !isMember) {
-      throw new Error('Not authorized to view comments for this task');
-    }
-
-    return await prisma.task_comments.findMany({
-      where: { task_id: Number(taskId) },
-      include: {
-        users: {
-          select: {
-            user_id: true,
-            username: true,
-            email: true
-          }
-        }
-      },
-      orderBy: { created_at: 'desc' }
-    });
-  } catch (error) {
-    log.error(NAMESPACE, `getTaskComments: ${error.message}`);
-    throw error;
-  }
-};
-
 const createComment = async (commentData, userId) => {
   try {
     const { task_id, comment_text } = commentData;
 
-    // Check if task exists
+    // Check if task exists and user has access (admin check is handled by middleware)
     const task = await prisma.tasks.findUnique({
       where: { task_id: Number(task_id) }
     });
 
     if (!task) {
       throw new Error('Task not found');
+    }
+
+    const hasAccess = await hasTaskAccess({ userId }, task);
+    if (!hasAccess) {
+      throw new Error('Not authorized to create comments for this task');
     }
 
     return await prisma.task_comments.create({
@@ -101,8 +59,8 @@ const updateComment = async (id, commentData, userId) => {
       throw new Error('Comment not found');
     }
 
-    // Check if user is the author of the comment
-    if (comment.user_id !== userId) {
+    // Check if user is the author of the comment (admin check is handled by middleware)
+    if (!isSelf({ userId }, comment.user_id)) {
       throw new Error('Not authorized to update this comment');
     }
 
@@ -126,8 +84,8 @@ const deleteComment = async (id, userId) => {
       throw new Error('Comment not found');
     }
 
-    // Check if user is the author of the comment
-    if (comment.user_id !== userId) {
+    // Check if user is the author of the comment (admin check is handled by middleware)
+    if (!isSelf({ userId }, comment.user_id)) {
       throw new Error('Not authorized to delete this comment');
     }
 
@@ -144,7 +102,6 @@ const deleteComment = async (id, userId) => {
 
 export default {
   getCommentById,
-  getTaskComments,
   createComment,
   updateComment,
   deleteComment
