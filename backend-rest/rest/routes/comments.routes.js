@@ -7,6 +7,9 @@ const router = express.Router();
 // Get comment by ID
 router.get('/:id', verifyTokenMiddleware, controller.getCommentById);
 
+// Get comments by task
+router.get('/task/:taskId', verifyTokenMiddleware, controller.getTaskComments);
+
 // Create new comment
 router.post('/', verifyTokenMiddleware, controller.createComment);
 

@@ -15,6 +15,45 @@ const getAttachmentById = async (id) => {
   }
 };
 
+const getTaskAttachments = async (taskId, userId) => {
+  try {
+    // Check if user has access to the task's project
+    const task = await prisma.tasks.findUnique({
+      where: { task_id: Number(taskId) },
+      include: {
+        projects: true
+      }
+    });
+
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    const project = task.projects;
+    const isOwner = project.owner_id === userId;
+    const isMember = await prisma.project_members.findUnique({
+      where: {
+        project_id_user_id: {
+          project_id: project.project_id,
+          user_id: userId
+        }
+      }
+    });
+
+    if (!isOwner && !isMember) {
+      throw new Error('Not authorized to view attachments for this task');
+    }
+
+    return await prisma.task_attachments.findMany({
+      where: { task_id: Number(taskId) },
+      orderBy: { uploaded_at: 'desc' }
+    });
+  } catch (error) {
+    log.error(NAMESPACE, `getTaskAttachments: ${error.message}`);
+    throw error;
+  }
+};
+
 const createAttachment = async (attachmentData) => {
   try {
     const { task_id, file_path } = attachmentData;
@@ -85,6 +124,7 @@ const deleteAttachment = async (id) => {
 
 export default {
   getAttachmentById,
+  getTaskAttachments,
   createAttachment,
   updateAttachment,
   deleteAttachment

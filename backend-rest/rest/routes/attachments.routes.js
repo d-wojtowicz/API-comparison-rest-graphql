@@ -7,6 +7,9 @@ const router = express.Router();
 // Get attachment by ID
 router.get('/:id', verifyTokenMiddleware, controller.getAttachmentById);
 
+// Get attachments by task
+router.get('/task/:taskId', verifyTokenMiddleware, controller.getTaskAttachments);
+
 // Create new attachment
 router.post('/', verifyTokenMiddleware, controller.createAttachment);
 
