@@ -229,6 +229,23 @@ const deleteUser = async (id, currentUser) => {
   }
 };
 
+// Dependencies
+const getTasksByAssignee = async (assigneeId, userId) => {
+  try {
+    // Users can only view their own assigned tasks unless they're admin (admin check is handled by middleware)
+    if (!isSelf({ userId }, Number(assigneeId))) {
+      throw new Error('Not authorized to view these tasks');
+    }
+
+    return await prisma.tasks.findMany({
+      where: { assignee_id: Number(assigneeId) }
+    });
+  } catch (error) {
+    log.error(NAMESPACE, `getTasksByAssignee: ${error.message}`);
+    throw error;
+  }
+};
+
 export default {
   getMe,
   getUserById,
@@ -237,5 +254,7 @@ export default {
   login,
   changePassword,
   updateUserRole,
-  deleteUser
+  deleteUser,
+  // Dependencies
+  getTasksByAssignee
 }; 

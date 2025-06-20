@@ -19,4 +19,8 @@ router.put('/:id', verifyTokenMiddleware, requireSuperAdmin, statusesController.
 // Delete status (superadmin only)
 router.delete('/:id', verifyTokenMiddleware, requireSuperAdmin, statusesController.deleteStatus);
 
+// Dependencies
+// Get tasks by status (admin only)
+router.get('/:statusId/tasks', verifyTokenMiddleware, requireAdmin, statusesController.getTasksByStatus);
+
 export default router; 

@@ -82,9 +82,42 @@ const deleteStatus = async (id) => {
   }
 }; 
 
+// Dependencies
+const getTasksByStatus = async (statusId, userId) => {
+  try {
+    const tasks = await prisma.tasks.findMany({
+      where: { status_id: Number(statusId) }
+    });
+
+    if (!tasks.length) return [];
+
+    // For regular users, filter tasks based on project access (admin check is handled by middleware)
+    const projectIds = [...new Set(tasks.map(task => task.project_id))];
+    
+    const accessibleProjectIds = new Set();
+    
+    for (const projectId of projectIds) {
+      const isOwner = await isProjectOwner(userId, projectId);
+      const isMember = await isProjectMember(userId, projectId);
+
+      if (isOwner || isMember) {
+        accessibleProjectIds.add(projectId);
+      }
+    }
+
+    // Return only tasks from accessible projects
+    return tasks.filter(task => accessibleProjectIds.has(task.project_id));
+  } catch (error) {
+    log.error(NAMESPACE, `getTasksByStatus: ${error.message}`);
+    throw error;
+  }
+};
+
 export default {
   getAllStatuses,
   createStatus,
   updateStatus,
-  deleteStatus
+  deleteStatus,
+  // Dependencies
+  getTasksByStatus
 };

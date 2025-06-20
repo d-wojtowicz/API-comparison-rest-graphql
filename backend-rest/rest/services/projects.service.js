@@ -288,6 +288,27 @@ const removeProjectMember = async (projectId, memberUserId, userId) => {
   }
 };
 
+// Dependencies
+const getTasksByProject = async (projectId, userId) => {
+  try {
+    // Check if user has access to the project (admin check is handled by middleware)
+    const isOwner = await isProjectOwner(userId, Number(projectId));
+    const isMember = await isProjectMember(userId, Number(projectId));
+
+    if (!isOwner && !isMember) {
+      throw new Error('Not authorized to view tasks in this project');
+    }
+
+    return await prisma.tasks.findMany({
+      where: { project_id: Number(projectId) }
+    });
+  } catch (error) {
+    log.error(NAMESPACE, `getTasksByProject: ${error.message}`);
+    throw error;
+  }
+};
+
+
 export default {
   getProjectById,
   getAllProjects,
@@ -297,5 +318,7 @@ export default {
   updateProject,
   deleteProject,
   addProjectMember,
-  removeProjectMember
+  removeProjectMember,
+  // Dependencies
+  getTasksByProject
 }; 

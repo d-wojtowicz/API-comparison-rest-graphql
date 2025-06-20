@@ -129,6 +129,22 @@ const removeProjectMember = async (req, res) => {
   }
 };
 
+// Dependencies
+const getTasksByProject = async (req, res) => {
+  try {
+    const tasks = await projectService.getTasksByProject(req.params.projectId, req.user.userId);
+    res.status(200).json(tasks);
+  } catch (error) {
+    if (error.message === 'Project not found') {
+      return res.status(404).json({ message: error.message });
+    }
+    if (error.message === 'Not authorized to view tasks in this project') {
+      return res.status(403).json({ message: error.message });
+    }
+    res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
+  }
+};
+
 export default {
   getProjectById,
   getAllProjects,
@@ -138,5 +154,7 @@ export default {
   updateProject,
   deleteProject,
   addProjectMember,
-  removeProjectMember
+  removeProjectMember,
+  // Dependencies
+  getTasksByProject
 }; 

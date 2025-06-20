@@ -110,6 +110,19 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// Dependencies
+const getTasksByAssignee = async (req, res) => {
+  try {
+    const tasks = await userService.getTasksByAssignee(req.params.userId, req.user.userId);
+    res.status(200).json(tasks);
+  } catch (error) {
+    if (error.message === 'Not authorized to view these tasks') {
+      return res.status(403).json({ message: error.message });
+    }
+    res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
+  }
+};
+
 export default {
   getMe,
   getUserById,
@@ -118,5 +131,7 @@ export default {
   login,
   changePassword,
   updateUserRole,
-  deleteUser
+  deleteUser,
+  // Dependencies
+  getTasksByAssignee
 }; 

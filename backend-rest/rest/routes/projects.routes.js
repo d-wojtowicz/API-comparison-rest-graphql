@@ -31,4 +31,9 @@ router.post('/:id/members', verifyTokenMiddleware, projectsController.addProject
 // Remove project member
 router.delete('/:id/members/:userId', verifyTokenMiddleware, projectsController.removeProjectMember);
 
+// Dependencies
+// Get tasks by project
+router.get('/:projectId/tasks', verifyTokenMiddleware, projectsController.getTasksByProject);
+
+
 export default router; 

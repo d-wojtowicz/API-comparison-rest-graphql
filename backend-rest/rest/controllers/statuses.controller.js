@@ -67,10 +67,22 @@ const deleteStatus = async (req, res) => {
   }
 };
 
+// Dependencies
+const getTasksByStatus = async (req, res) => {
+  try {
+    const tasks = await statusService.getTasksByStatus(req.params.statusId, req.user.userId);
+    res.status(200).json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
+  }
+};
+
 export default {
   getAllStatuses,
   getStatusById,
   createStatus,
   updateStatus,
-  deleteStatus
+  deleteStatus,
+  // Dependencies
+  getTasksByStatus
 };

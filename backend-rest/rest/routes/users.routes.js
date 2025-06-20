@@ -28,4 +28,8 @@ router.put('/:id/role', verifyTokenMiddleware, requireAdmin, usersController.upd
 // Delete user (admin only)
 router.delete('/:id', verifyTokenMiddleware, requireAdmin, usersController.deleteUser);
 
+// Dependencies
+// Get tasks by assignee
+router.get('/:userId/tasks', verifyTokenMiddleware, usersController.getTasksByAssignee);
+
 export default router;
