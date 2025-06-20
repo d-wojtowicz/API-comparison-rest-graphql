@@ -19,7 +19,7 @@ const getMe = async (req, res) => {
 
 const getUserById = async (req, res) => {
   try {
-    const user = await userService.getUserById(req.params.id);
+    const user = await userService.getUserById(req.params.id, req.user);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -31,7 +31,7 @@ const getUserById = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await userService.getAllUsers();
+    const users = await userService.getAllUsers(req.user);
     res.status(200).json(users);
   } catch (error) {
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });

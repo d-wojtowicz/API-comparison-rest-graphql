@@ -3,6 +3,7 @@ import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
 import bcrypt from 'bcryptjs';
 import { signToken } from '../../utils/jwt.js';
+import { isSuperAdmin, isAdmin, filterUserFields } from '../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'USER-SERVICE' : 'rest/services/users.service.js';
 
@@ -17,20 +18,24 @@ const getMe = async (userId) => {
   }
 };
 
-const getUserById = async (id) => {
+const getUserById = async (id, requestingUser) => {
   try {
-    return await prisma.users.findUnique({
+    const user = await prisma.users.findUnique({
       where: { user_id: Number(id) }
     });
+    
+    return filterUserFields(user, requestingUser);
   } catch (error) {
     log.error(NAMESPACE, `getUserById: ${error.message}`);
     throw error;
   }
 };
 
-const getAllUsers = async () => {
+const getAllUsers = async (requestingUser) => {
   try {
-    return await prisma.users.findMany();
+    const users = await prisma.users.findMany();
+    
+    return users.map(user => filterUserFields(user, requestingUser));
   } catch (error) {
     log.error(NAMESPACE, `getAllUsers: ${error.message}`);
     throw error;
@@ -52,12 +57,13 @@ const register = async (userData) => {
     });
     
     if (existingUser) {
+      log.error(NAMESPACE, 'register: User with this email or username already exists');
       throw new Error('User with this email or username already exists');
     }
 
     const password_hash = await bcrypt.hash(password, 10);
     
-    return await prisma.users.create({
+    const newUser = await prisma.users.create({
       data: { 
         username, 
         email, 
@@ -65,6 +71,8 @@ const register = async (userData) => {
         role: 'user' 
       }
     });
+
+    return filterUserFields(newUser, { role: 'user' });
   } catch (error) {
     log.error(NAMESPACE, `register: ${error.message}`);
     throw error;
@@ -78,6 +86,7 @@ const login = async (loginData) => {
     const userCredentials = await prisma.users.findFirst({ 
       where: { 
         OR: [
+          // Allow login with email or username
           { email: login },
           { username: login } 
         ]
@@ -85,11 +94,13 @@ const login = async (loginData) => {
     });
 
     if (!userCredentials) {
+      log.error(NAMESPACE, `login: User with email/username ${login} not found`);
       throw new Error('Invalid credentials');
     }
 
     const valid = await bcrypt.compare(password, userCredentials.password_hash);
     if (!valid) {
+      log.error(NAMESPACE, 'login: Invalid password');
       throw new Error('Invalid credentials');
     }
 
@@ -114,11 +125,13 @@ const changePassword = async (userId, passwordData) => {
     });
 
     if (!dbUser) {
+      log.error(NAMESPACE, 'changePassword: User not found in database');
       throw new Error('User not found');
     }
 
     const valid = await bcrypt.compare(oldPassword, dbUser.password_hash);
     if (!valid) {
+      log.error(NAMESPACE, 'changePassword: Invalid current password');
       throw new Error('Invalid current password');
     }
 
@@ -132,6 +145,7 @@ const changePassword = async (userId, passwordData) => {
       }
     });
 
+    log.info(NAMESPACE, 'changePassword: Password updated successfully');
     return true;
   } catch (error) {
     log.error(NAMESPACE, `changePassword: ${error.message}`);
@@ -146,30 +160,36 @@ const updateUserRole = async (id, role, currentUser) => {
     });
 
     if (!targetUser) {
+      log.error(NAMESPACE, 'updateUserRole: User not found in database');
       throw new Error('User not found');
     }
 
     // Prevent modifying self
     if (currentUser.userId === targetUser.user_id) {
+      log.error(NAMESPACE, 'updateUserRole: Cannot modify self');
       throw new Error('Cannot modify self');
     }
 
     // Prevent modifying admin users
     if (targetUser.role === 'superadmin') {
+      log.error(NAMESPACE, 'updateUserRole: Cannot modify superadmin users');
       throw new Error('Cannot modify superadmin users');
     }
 
     if (role === 'superadmin') {
+      log.error(NAMESPACE, 'updateUserRole: Cannot promote to superadmin');
       throw new Error('Cannot promote to superadmin');
     }
 
-    return await prisma.users.update({
+    const updatedUser = await prisma.users.update({
       where: { user_id: Number(id) },
       data: { 
         role,
         updated_at: new Date()
       }
     });
+
+    return filterUserFields(updatedUser, currentUser);
   } catch (error) {
     log.error(NAMESPACE, `updateUserRole: ${error.message}`);
     throw error;
@@ -183,15 +203,18 @@ const deleteUser = async (id, currentUser) => {
     });
 
     if (!targetUser) {
+      log.error(NAMESPACE, 'deleteUser: User not found in database');
       throw new Error('User not found');
     }
 
     // Prevent deleting admin users
     if (targetUser.role === 'admin' || targetUser.role === 'superadmin') {
+      log.error(NAMESPACE, 'deleteUser: Cannot delete admin users');
       throw new Error('Cannot delete admin users');
     }
 
     if (currentUser.userId === targetUser.user_id) {
+      log.error(NAMESPACE, 'deleteUser: Cannot delete self');
       throw new Error('Cannot delete self');
     }
 
