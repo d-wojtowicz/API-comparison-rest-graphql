@@ -4,6 +4,15 @@ import prisma from '../../db/client.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'STATUS-SERVICE' : 'rest/services/statuses.service.js';
 
+const getStatusById = async (id) => {
+  try {
+    return await prisma.task_statuses.findUnique({ where: { status_id: Number(id) } });
+  } catch (error) {
+    log.error(NAMESPACE, `getStatusById: ${error.message}`);
+    throw error;
+  }
+};
+
 const getAllStatuses = async () => {
   try {
     return await prisma.task_statuses.findMany();
@@ -22,6 +31,7 @@ const createStatus = async (statusData) => {
     });
 
     if (existingStatus) {
+      log.error(NAMESPACE, `createStatus: Status with this name already exists`);
       throw new Error('Status with this name already exists');
     }
 
@@ -48,6 +58,7 @@ const updateStatus = async (id, statusData) => {
     });
 
     if (existingStatus) {
+      log.error(NAMESPACE, `updateStatus: Status with this name already exists`);
       throw new Error('Status with this name already exists');
     }
 
@@ -63,11 +74,20 @@ const updateStatus = async (id, statusData) => {
 
 const deleteStatus = async (id) => {
   try {
+    const status = await prisma.task_statuses.findUnique({
+      where: { status_id: Number(id) }
+    });
+    if (!status) {
+      log.error(NAMESPACE, `deleteStatus: Status not found`);
+      throw new Error('Status not found');
+    }
+
     const tasksWithStatus = await prisma.tasks.findMany({
       where: { status_id: Number(id) }
     });
 
     if (tasksWithStatus.length > 0) {
+      log.error(NAMESPACE, `deleteStatus: Cannot delete status that is being used by tasks`);
       throw new Error('Cannot delete status that is being used by tasks');
     }
 
@@ -115,6 +135,7 @@ const getTasksByStatus = async (statusId, userId) => {
 
 export default {
   getAllStatuses,
+  getStatusById,
   createStatus,
   updateStatus,
   deleteStatus,
