@@ -7,7 +7,7 @@ const NAMESPACE = CONFIG.server.env === 'PROD' ? 'ATTACHMENT-CONTROLLER' : 'rest
 
 const getAttachmentById = async (req, res) => {
   try {
-    const attachment = await attachmentService.getAttachmentById(req.params.id);
+    const attachment = await attachmentService.getAttachmentById(req.params.id, req.user);
     if (!attachment) {
       return res.status(404).json({ message: 'Attachment not found' });
     }

@@ -5,11 +5,25 @@ import { hasTaskAccess } from '../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'ATTACHMENT-SERVICE' : 'rest/services/attachments.service.js';
 
-const getAttachmentById = async (id) => {
+const getAttachmentById = async (id, user) => {
   try {
-    return await prisma.task_attachments.findUnique({
+    const attachment = await prisma.task_attachments.findUnique({
       where: { attachment_id: Number(id) }
     });
+
+    if (!attachment) {
+      log.error(NAMESPACE, `getAttachmentById: Attachment not found`);
+      throw new Error('Attachment not found');
+    }
+
+    const hasAccess = await hasTaskAccess(user, attachment.task_id);
+    const isAdmin = await isAdmin(user);
+    if (!hasAccess && !isAdmin) {
+      log.error(NAMESPACE, `getAttachmentById: User not authorized to view this attachment`);
+      throw new Error('Not authorized to view this attachment');
+    }
+
+    return attachment;
   } catch (error) {
     log.error(NAMESPACE, `getAttachmentById: ${error.message}`);
     throw error;
@@ -26,20 +40,28 @@ const createAttachment = async (attachmentData, user) => {
     });
 
     if (!task) {
+      log.error(NAMESPACE, `createAttachment: Task not found`);
       throw new Error('Task not found');
     }
 
     const hasAccess = await hasTaskAccess(user, task);
-    if (!hasAccess) {
+    const isAdmin = await isAdmin(user);
+    if (!hasAccess && !isAdmin) {
+      log.error(NAMESPACE, `createAttachment: User not authorized to create attachments for this task`);
       throw new Error('Not authorized to create attachments for this task');
     }
 
-    return await prisma.task_attachments.create({
+    const attachment = await prisma.task_attachments.create({
       data: {
         task_id: Number(task_id),
         file_path
       }
     });
+
+    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
+    // TODO: Send notification to task assignee
+
+    return attachment;
   } catch (error) {
     log.error(NAMESPACE, `createAttachment: ${error.message}`);
     throw error;
@@ -52,18 +74,17 @@ const updateAttachment = async (id, attachmentData, user) => {
 
     const attachment = await prisma.task_attachments.findUnique({
       where: { attachment_id: Number(id) },
-      include: {
-        tasks: true
-      }
     });
 
     if (!attachment) {
+      log.error(NAMESPACE, `updateAttachment: Attachment not found`);
       throw new Error('Attachment not found');
     }
 
-    // Check if user has access to the task (admin check is handled by middleware)
     const hasAccess = await hasTaskAccess(user, attachment.tasks);
-    if (!hasAccess) {
+    const isAdmin = await isAdmin(user);
+    if (!hasAccess && !isAdmin) {
+      log.error(NAMESPACE, `updateAttachment: User not authorized to update this attachment`);
       throw new Error('Not authorized to update this attachment');
     }
 
@@ -80,19 +101,19 @@ const updateAttachment = async (id, attachmentData, user) => {
 const deleteAttachment = async (id, user) => {
   try {
     const attachment = await prisma.task_attachments.findUnique({
-      where: { attachment_id: Number(id) },
-      include: {
-        tasks: true
-      }
+      where: { attachment_id: Number(id) }
     });
 
     if (!attachment) {
+      log.error(NAMESPACE, `deleteAttachment: Attachment not found`);
       throw new Error('Attachment not found');
     }
 
     // Check if user has access to the task (admin check is handled by middleware)
     const hasAccess = await hasTaskAccess(user, attachment.tasks);
-    if (!hasAccess) {
+    const isAdmin = await isAdmin(user);
+    if (!hasAccess && !isAdmin) {
+      log.error(NAMESPACE, `deleteAttachment: User not authorized to delete this attachment`);
       throw new Error('Not authorized to delete this attachment');
     }
 
