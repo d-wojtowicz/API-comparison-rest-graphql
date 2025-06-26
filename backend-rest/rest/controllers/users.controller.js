@@ -113,7 +113,7 @@ const deleteUser = async (req, res) => {
 // Dependencies
 const getTasksByAssignee = async (req, res) => {
   try {
-    const tasks = await userService.getTasksByAssignee(req.params.userId, req.user.userId);
+    const tasks = await userService.getTasksByAssignee(req.params.userId, req.user);
     res.status(200).json(tasks);
   } catch (error) {
     if (error.message === 'Not authorized to view these tasks') {

@@ -19,7 +19,7 @@ const getAttachmentById = async (req, res) => {
 
 const getTaskAttachments = async (req, res) => {
   try {
-    const attachments = await attachmentService.getTaskAttachments(req.params.taskId, req.user.userId);
+    const attachments = await attachmentService.getTaskAttachments(req.params.taskId, req.user);
     res.status(200).json(attachments);
   } catch (error) {
     if (error.message === 'Task not found') {
@@ -34,7 +34,7 @@ const getTaskAttachments = async (req, res) => {
 
 const createAttachment = async (req, res) => {
   try {
-    const attachment = await attachmentService.createAttachment(req.body, req.user.userId);
+    const attachment = await attachmentService.createAttachment(req.body, req.user);
     res.status(201).json(attachment);
   } catch (error) {
     if (error.message === 'Task not found') {
@@ -49,7 +49,7 @@ const createAttachment = async (req, res) => {
 
 const updateAttachment = async (req, res) => {
   try {
-    const attachment = await attachmentService.updateAttachment(req.params.id, req.body, req.user.userId);
+    const attachment = await attachmentService.updateAttachment(req.params.id, req.body, req.user);
     if (!attachment) {
       return res.status(404).json({ message: 'Attachment not found' });
     }
@@ -64,7 +64,7 @@ const updateAttachment = async (req, res) => {
 
 const deleteAttachment = async (req, res) => {
   try {
-    await attachmentService.deleteAttachment(req.params.id, req.user.userId);
+    await attachmentService.deleteAttachment(req.params.id, req.user);
     res.status(200).json({ message: 'Attachment deleted successfully' });
   } catch (error) {
     if (error.message === 'Attachment not found') {

@@ -7,7 +7,7 @@ const NAMESPACE = CONFIG.server.env === 'PROD' ? 'TASK-CONTROLLER' : 'rest/contr
 
 const getTaskById = async (req, res) => {
   try {
-    const task = await taskService.getTaskById(req.params.id, req.user.userId);
+    const task = await taskService.getTaskById(req.params.id, req.user);
     res.status(200).json(task);
   } catch (error) {
     if (error.message === 'Task not found') {
@@ -25,7 +25,7 @@ const getTaskById = async (req, res) => {
 
 const createTask = async (req, res) => {
   try {
-    const task = await taskService.createTask(req.body, req.user.userId);
+    const task = await taskService.createTask(req.body, req.user);
     res.status(201).json(task);
   } catch (error) {
     if (error.message === 'Project not found') {
@@ -43,7 +43,7 @@ const createTask = async (req, res) => {
 
 const updateTask = async (req, res) => {
   try {
-    const task = await taskService.updateTask(req.params.id, req.body, req.user.userId);
+    const task = await taskService.updateTask(req.params.id, req.body, req.user);
     res.status(200).json(task);
   } catch (error) {
     if (error.message === 'Task not found') {
@@ -64,7 +64,7 @@ const updateTask = async (req, res) => {
 
 const deleteTask = async (req, res) => {
   try {
-    await taskService.deleteTask(req.params.id, req.user.userId);
+    await taskService.deleteTask(req.params.id, req.user);
     res.status(200).json({ message: 'Task deleted successfully' });
   } catch (error) {
     if (error.message === 'Task not found') {
@@ -82,7 +82,7 @@ const deleteTask = async (req, res) => {
 
 const assignTask = async (req, res) => {
   try {
-    const task = await taskService.assignTask(req.params.id, req.body.assigneeId, req.user.userId);
+    const task = await taskService.assignTask(req.params.id, req.body.assigneeId, req.user);
     res.status(200).json(task);
   } catch (error) {
     if (error.message === 'Task not found') {
@@ -103,7 +103,7 @@ const assignTask = async (req, res) => {
 
 const updateTaskStatus = async (req, res) => {
   try {
-    const task = await taskService.updateTaskStatus(req.params.id, req.body.statusId, req.user.userId);
+    const task = await taskService.updateTaskStatus(req.params.id, req.body.statusId, req.user);
     res.status(200).json(task);
   } catch (error) {
     if (error.message === 'Task not found') {
@@ -125,7 +125,7 @@ const updateTaskStatus = async (req, res) => {
 // Dependencies
 const getTaskComments = async (req, res) => {
   try {
-    const comments = await taskService.getTaskComments(req.params.taskId, req.user.userId);
+    const comments = await taskService.getTaskComments(req.params.taskId, req.user);
     res.status(200).json(comments);
   } catch (error) {
     if (error.message === 'Task not found') {

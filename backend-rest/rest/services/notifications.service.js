@@ -6,10 +6,10 @@ import prisma from '../../db/client.js';
 import { isNotificationOwner, isSuperAdmin } from '../utils/permissions.js';
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'NOTIFICATION-SERVICE' : 'rest/services/notifications.service.js';
 
-const getMyNotifications = async (userId) => {
+const getMyNotifications = async (user) => {
   try {
     return await prisma.notifications.findMany({
-      where: { user_id: userId },
+      where: { user_id: user.userId },
       orderBy: { created_at: 'desc' }
     });
   } catch (error) {
@@ -18,11 +18,11 @@ const getMyNotifications = async (userId) => {
   }
 };
 
-const getUnreadNotificationsCount = async (userId) => {
+const getUnreadNotificationsCount = async (user) => {
   try {
     return await prisma.notifications.count({
       where: {
-        user_id: userId,
+        user_id: user.userId,
         is_read: false
       }
     });
@@ -32,7 +32,7 @@ const getUnreadNotificationsCount = async (userId) => {
   }
 };
 
-const getNotificationById = async (id, userId) => {
+const getNotificationById = async (id, user) => {
   try {
     const notification = await prisma.notifications.findUnique({
       where: { notification_id: Number(id) }
@@ -44,7 +44,7 @@ const getNotificationById = async (id, userId) => {
     }
 
     // Users can only view their own notifications
-    if (!isNotificationOwner(userId, notification) && !isSuperAdmin(userId)) {
+    if (!isNotificationOwner(user.userId, notification) && !isSuperAdmin(user)) {
       log.error(NAMESPACE, `getNotificationById: Not authorized to view this notification`);
       throw new Error('Not authorized to view this notification');
     }
@@ -87,7 +87,7 @@ const createNotification = async (notificationData) => {
   }
 };
 
-const updateNotification = async (id, notificationData, userId) => {
+const updateNotification = async (id, notificationData, user) => {
   try {
     const { is_read } = notificationData;
 
@@ -101,7 +101,7 @@ const updateNotification = async (id, notificationData, userId) => {
     }
 
     // Users can only update their own notifications
-      if (!isNotificationOwner(userId, notification) && !isSuperAdmin(userId)) {
+      if (!isNotificationOwner(user.userId, notification) && !isSuperAdmin(user)) {
       log.error(NAMESPACE, `updateNotification: Not authorized to update this notification`);
       throw new Error('Not authorized to update this notification');
     }
@@ -120,11 +120,11 @@ const updateNotification = async (id, notificationData, userId) => {
   }
 };
 
-const markAllNotificationsAsRead = async (userId) => {
+const markAllNotificationsAsRead = async (user) => {
   try {
     await prisma.notifications.updateMany({
       where: {
-        user_id: userId,
+        user_id: user.userId,
         is_read: false
       },
       data: {
@@ -139,7 +139,7 @@ const markAllNotificationsAsRead = async (userId) => {
   }
 };
 
-const deleteNotification = async (id, userId) => {
+const deleteNotification = async (id, user) => {
   try {
     const notification = await prisma.notifications.findUnique({
       where: { notification_id: Number(id) }
@@ -151,7 +151,7 @@ const deleteNotification = async (id, userId) => {
     }
 
     // Users can only delete their own notifications
-    if (!isNotificationOwner(userId, notification) && !isSuperAdmin(userId)) {
+    if (!isNotificationOwner(user.userId, notification) && !isSuperAdmin(user)) {
       log.error(NAMESPACE, `deleteNotification: Not authorized to delete this notification`);
       throw new Error('Not authorized to delete this notification');
     }

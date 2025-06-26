@@ -19,7 +19,7 @@ const getCommentById = async (req, res) => {
 
 const createComment = async (req, res) => {
   try {
-    const comment = await commentService.createComment(req.body, req.user.userId);
+    const comment = await commentService.createComment(req.body, req.user);
     res.status(201).json(comment);
   } catch (error) {
     if (error.message === 'Task not found') {
@@ -31,7 +31,7 @@ const createComment = async (req, res) => {
 
 const updateComment = async (req, res) => {
   try {
-    const comment = await commentService.updateComment(req.params.id, req.body, req.user.userId);
+    const comment = await commentService.updateComment(req.params.id, req.body, req.user);
     if (!comment) {
       return res.status(404).json({ message: 'Comment not found' });
     }
@@ -46,7 +46,7 @@ const updateComment = async (req, res) => {
 
 const deleteComment = async (req, res) => {
   try {
-    await commentService.deleteComment(req.params.id, req.user.userId);
+    await commentService.deleteComment(req.params.id, req.user);
     res.status(200).json({ message: 'Comment deleted successfully' });
   } catch (error) {
     if (error.message === 'Comment not found') {

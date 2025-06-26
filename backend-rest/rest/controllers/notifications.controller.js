@@ -7,7 +7,7 @@ const NAMESPACE = CONFIG.server.env === 'PROD' ? 'NOTIFICATION-CONTROLLER' : 're
 
 const getMyNotifications = async (req, res) => {
   try {
-    const notifications = await notificationService.getMyNotifications(req.user.userId);
+    const notifications = await notificationService.getMyNotifications(req.user);
     res.status(200).json(notifications);
   } catch (error) {
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
@@ -16,7 +16,7 @@ const getMyNotifications = async (req, res) => {
 
 const getUnreadNotificationsCount = async (req, res) => {
   try {
-    const count = await notificationService.getUnreadNotificationsCount(req.user.userId);
+    const count = await notificationService.getUnreadNotificationsCount(req.user);
     res.status(200).json({ count });
   } catch (error) {
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
@@ -25,7 +25,7 @@ const getUnreadNotificationsCount = async (req, res) => {
 
 const getNotificationById = async (req, res) => {
   try {
-    const notification = await notificationService.getNotificationById(req.params.id, req.user.userId);
+    const notification = await notificationService.getNotificationById(req.params.id, req.user);
     res.status(200).json(notification);
   } catch (error) {
     if (error.message === 'Notification not found') {
@@ -52,7 +52,7 @@ const createNotification = async (req, res) => {
 
 const updateNotification = async (req, res) => {
   try {
-    const notification = await notificationService.updateNotification(req.params.id, req.body, req.user.userId);
+    const notification = await notificationService.updateNotification(req.params.id, req.body, req.user);
     res.status(200).json(notification);
   } catch (error) {
     if (error.message === 'Notification not found') {
@@ -67,7 +67,7 @@ const updateNotification = async (req, res) => {
 
 const markAllNotificationsAsRead = async (req, res) => {
   try {
-    await notificationService.markAllNotificationsAsRead(req.user.userId);
+    await notificationService.markAllNotificationsAsRead(req.user);
     res.status(200).json({ message: 'All notifications marked as read' });
   } catch (error) {
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
@@ -76,7 +76,7 @@ const markAllNotificationsAsRead = async (req, res) => {
 
 const deleteNotification = async (req, res) => {
   try {
-    await notificationService.deleteNotification(req.params.id, req.user.userId);
+    await notificationService.deleteNotification(req.params.id, req.user);
     res.status(200).json({ message: 'Notification deleted successfully' });
   } catch (error) {
     if (error.message === 'Notification not found') {

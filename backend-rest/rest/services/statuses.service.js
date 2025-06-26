@@ -1,6 +1,7 @@
 import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
+import { isProjectOwner, isProjectMember } from '../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'STATUS-SERVICE' : 'rest/services/statuses.service.js';
 
@@ -103,7 +104,7 @@ const deleteStatus = async (id) => {
 }; 
 
 // Dependencies
-const getTasksByStatus = async (statusId, userId) => {
+const getTasksByStatus = async (statusId, user) => {
   try {
     const tasks = await prisma.tasks.findMany({
       where: { status_id: Number(statusId) }
@@ -117,8 +118,8 @@ const getTasksByStatus = async (statusId, userId) => {
     const accessibleProjectIds = new Set();
     
     for (const projectId of projectIds) {
-      const isOwner = await isProjectOwner(userId, projectId);
-      const isMember = await isProjectMember(userId, projectId);
+      const isOwner = await isProjectOwner(user.userId, projectId);
+      const isMember = await isProjectMember(user.userId, projectId);
 
       if (isOwner || isMember) {
         accessibleProjectIds.add(projectId);

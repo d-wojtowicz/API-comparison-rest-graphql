@@ -1,11 +1,11 @@
 import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
-import { isProjectOwner, isProjectMember, hasTaskAccess, isSelf } from '../utils/permissions.js';
+import { isProjectOwner, isProjectMember, hasTaskAccess, isSelf, isAdmin } from '../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'TASK-SERVICE' : 'rest/services/tasks.service.js';
 
-const getTaskById = async (id, userId) => {
+const getTaskById = async (id, user) => {
   try {
     const task = await prisma.tasks.findUnique({
       where: { task_id: Number(id) }
@@ -17,8 +17,8 @@ const getTaskById = async (id, userId) => {
     }
 
     // Check if user has access to the task (admin check is handled by middleware)
-    const hasAccess = await hasTaskAccess({ userId }, task);
-    const isAdmin = await isAdmin(userId);
+    const hasAccess = await hasTaskAccess(user, task);
+    const isAdmin = await isAdmin(user);
     if (!hasAccess && !isAdmin) {
       log.error(NAMESPACE, `getTaskById: User not authorized to view this task`);
       throw new Error('Not authorized to view this task');
@@ -31,14 +31,14 @@ const getTaskById = async (id, userId) => {
   }
 };
 
-const createTask = async (taskData, userId) => {
+const createTask = async (taskData, user) => {
   try {
     const { project_id, status_id, assignee_id, ...otherFields } = taskData;
 
     // Check if user has access to the project (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(userId, Number(project_id));
-    const isMember = await isProjectMember(userId, Number(project_id));
-    const isAdmin = await isAdmin(userId);
+    const isOwner = await isProjectOwner(user.userId, Number(project_id));
+    const isMember = await isProjectMember(user.userId, Number(project_id));
+    const isAdmin = await isAdmin(user);
 
     if (!isOwner && !isMember && !isAdmin) {
       log.error(NAMESPACE, `createTask: User not authorized to create tasks in this project`);
@@ -49,7 +49,6 @@ const createTask = async (taskData, userId) => {
     if (assignee_id) {
       const isAssigneeMember = await isProjectMember(Number(assignee_id), Number(project_id));
       const isAssigneeOwner = await isProjectOwner(Number(assignee_id), Number(project_id));
-      const isAdmin = await isAdmin(userId);
       if (!isAssigneeMember && !isAssigneeOwner && !isAdmin) {
         log.error(NAMESPACE, `createTask: Assignee must be a member of the project`);
         throw new Error('Assignee must be a member of the project');
@@ -71,7 +70,7 @@ const createTask = async (taskData, userId) => {
   }
 };
 
-const updateTask = async (id, taskData, userId) => {
+const updateTask = async (id, taskData, user) => {
   try {
     const task = await prisma.tasks.findUnique({
       where: { task_id: Number(id) }
@@ -83,8 +82,8 @@ const updateTask = async (id, taskData, userId) => {
     }
 
     // Check if user has access to the task (admin check is handled by middleware)
-    const hasAccess = await hasTaskAccess({ userId }, task);
-    const isAdmin = await isAdmin(userId);
+    const hasAccess = await hasTaskAccess(user, task);
+    const isAdmin = await isAdmin(user);
     if (!hasAccess && !isAdmin) {
       log.error(NAMESPACE, `updateTask: User not authorized to update this task`);
       throw new Error('Not authorized to update this task');
@@ -119,7 +118,7 @@ const updateTask = async (id, taskData, userId) => {
   }
 };
 
-const deleteTask = async (id, userId) => {
+const deleteTask = async (id, user) => {
   try {
     const task = await prisma.tasks.findUnique({
       where: { task_id: Number(id) }
@@ -131,8 +130,8 @@ const deleteTask = async (id, userId) => {
     }
 
     // Check if user has access to the task (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(userId, task.project_id);
-    const isAdmin = await isAdmin(userId);
+    const isOwner = await isProjectOwner(user.userId, task.project_id);
+    const isAdmin = await isAdmin(user);
     if (!isOwner && !isAdmin) {
       log.error(NAMESPACE, `deleteTask: User not authorized to delete this task`);
       throw new Error('Not authorized to delete this task');
@@ -149,7 +148,7 @@ const deleteTask = async (id, userId) => {
   }
 };
 
-const assignTask = async (id, assigneeId, userId) => {
+const assignTask = async (id, assigneeId, user) => {
   try {
     const task = await prisma.tasks.findUnique({
       where: { task_id: Number(id) }
@@ -161,8 +160,8 @@ const assignTask = async (id, assigneeId, userId) => {
     }
 
     // Check if user has access to the project
-    const hasAccess = await hasTaskAccess({ userId }, task);
-    const isAdmin = await isAdmin(userId);
+    const hasAccess = await hasTaskAccess(user, task);
+    const isAdmin = await isAdmin(user);
 
     if (!hasAccess && !isAdmin) {
       log.error(NAMESPACE, `assignTask: User not authorized to assign this task`);
@@ -191,7 +190,7 @@ const assignTask = async (id, assigneeId, userId) => {
   }
 };
 
-const updateTaskStatus = async (id, statusId, userId) => {
+const updateTaskStatus = async (id, statusId, user) => {
   try {
     const task = await prisma.tasks.findUnique({
       where: { task_id: Number(id) }
@@ -203,8 +202,8 @@ const updateTaskStatus = async (id, statusId, userId) => {
     }
 
     // Check if user has access to the project
-    const hasAccess = await hasTaskAccess({ userId }, task);
-    const isAdmin = await isAdmin(userId);
+    const hasAccess = await hasTaskAccess(user, task);
+    const isAdmin = await isAdmin(user);
     if (!hasAccess && !isAdmin) {
       log.error(NAMESPACE, `updateTaskStatus: User not authorized to update this task status`);
       throw new Error('Not authorized to update this task status');
@@ -234,7 +233,7 @@ const updateTaskStatus = async (id, statusId, userId) => {
 };
 
 // Dependencies
-const getTaskComments = async (taskId, userId) => {
+const getTaskComments = async (taskId, user) => {
   try {
     // Check if user has access to the task (admin check is handled by middleware)
     const task = await prisma.tasks.findUnique({
@@ -242,25 +241,20 @@ const getTaskComments = async (taskId, userId) => {
     });
 
     if (!task) {
+      log.error(NAMESPACE, `getTaskComments: Task not found`);
       throw new Error('Task not found');
     }
 
-    const hasAccess = await hasTaskAccess({ userId }, task);
-    if (!hasAccess) {
+    const hasAccess = await hasTaskAccess(user, task);
+    const isAdmin = await isAdmin(user);
+
+    if (!hasAccess && !isAdmin) {
+      log.error(NAMESPACE, `getTaskComments: User not authorized to view comments for this task`);
       throw new Error('Not authorized to view comments for this task');
     }
 
     return await prisma.task_comments.findMany({
       where: { task_id: Number(taskId) },
-      include: {
-        users: {
-          select: {
-            user_id: true,
-            username: true,
-            email: true
-          }
-        }
-      },
       orderBy: { created_at: 'desc' }
     });
   } catch (error) {

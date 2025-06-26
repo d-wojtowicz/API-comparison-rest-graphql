@@ -1,11 +1,11 @@
 import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
-import { isProjectOwner, isProjectMember } from '../utils/permissions.js';
+import { isProjectOwner, isProjectMember, isAdmin } from '../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'PROJECT-SERVICE' : 'rest/services/projects.service.js';
 
-const getProjectById = async (id, userId) => {
+const getProjectById = async (id, user) => {
   try {
     const project = await prisma.projects.findUnique({
       where: { project_id: Number(id) }
@@ -17,9 +17,9 @@ const getProjectById = async (id, userId) => {
     }
 
     // Check if user is owner, member, or admin
-    const isOwner = await isProjectOwner(userId, Number(id));
-    const isMember = await isProjectMember(userId, Number(id));
-    const isAdmin = await isAdmin(userId);
+    const isOwner = await isProjectOwner(user.userId, Number(id));
+    const isMember = await isProjectMember(user.userId, Number(id));
+    const isAdmin = await isAdmin(user);
 
     if (!isOwner && !isMember && !isAdmin) {
       log.error(NAMESPACE, `getProjectById: Not authorized to access this project`);
@@ -42,18 +42,18 @@ const getAllProjects = async () => {
   }
 };
 
-const getMyProjects = async (userId) => {
+const getMyProjects = async (user) => {
   try {
     // Get projects where user is owner or member
     const ownedProjects = await prisma.projects.findMany({
-      where: { owner_id: userId }
+      where: { owner_id: user.userId }
     });
 
     const memberProjects = await prisma.projects.findMany({
       where: {
         project_members: {
           some: {
-            user_id: userId
+            user_id: user.userId
           }
         }
       }
@@ -72,7 +72,7 @@ const getMyProjects = async (userId) => {
   }
 };
 
-const getProjectMembers = async (projectId, userId) => {
+const getProjectMembers = async (projectId, user) => {
   try {
     const project = await prisma.projects.findUnique({
       where: { project_id: Number(projectId) }
@@ -84,9 +84,9 @@ const getProjectMembers = async (projectId, userId) => {
     }
 
     // Check if user is owner, member, or admin (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(userId, Number(projectId));
-    const isMember = await isProjectMember(userId, Number(projectId));
-    const isAdmin = await isAdmin(userId);
+    const isOwner = await isProjectOwner(user.userId, Number(projectId));
+    const isMember = await isProjectMember(user.userId, Number(projectId));
+    const isAdmin = await isAdmin(user);
 
     if (!isOwner && !isMember && !isAdmin) {
       log.error(NAMESPACE, `getProjectMembers: Not authorized to view project members`);
@@ -102,7 +102,7 @@ const getProjectMembers = async (projectId, userId) => {
   }
 };
 
-const createProject = async (projectData, userId) => {
+const createProject = async (projectData, user) => {
   try {
     const { project_name, description } = projectData;
 
@@ -110,7 +110,7 @@ const createProject = async (projectData, userId) => {
       data: {
         project_name,
         description,
-        owner_id: userId
+        owner_id: user.userId
       },
       include: {
         users: true
@@ -121,7 +121,7 @@ const createProject = async (projectData, userId) => {
     await prisma.project_members.create({
       data: {
         project_id: project.project_id,
-        user_id: userId,
+        user_id: user.userId,
         role: 'owner'
       }
     });
@@ -133,7 +133,7 @@ const createProject = async (projectData, userId) => {
   }
 };
 
-const updateProject = async (id, projectData, userId) => {
+const updateProject = async (id, projectData, user) => {
   try {
     const project = await prisma.projects.findUnique({
       where: { project_id: Number(id) }
@@ -145,8 +145,8 @@ const updateProject = async (id, projectData, userId) => {
     }
 
     // Only owner can update project (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(userId, Number(id));
-    const isAdmin = await isAdmin(userId);
+    const isOwner = await isProjectOwner(user.userId, Number(id));
+    const isAdmin = await isAdmin(user);
 
     if (!isOwner && !isAdmin) {
       log.error(NAMESPACE, `updateProject: Not authorized to update this project`);
@@ -173,7 +173,7 @@ const updateProject = async (id, projectData, userId) => {
   }
 };
 
-const deleteProject = async (id, userId) => {
+const deleteProject = async (id, user) => {
   try {
     const project = await prisma.projects.findUnique({
       where: { project_id: Number(id) },
@@ -188,8 +188,8 @@ const deleteProject = async (id, userId) => {
     }
 
     // Only owner can delete project (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(userId, Number(id));
-    const isAdmin = await isAdmin(userId);
+    const isOwner = await isProjectOwner(user.userId, Number(id));
+    const isAdmin = await isAdmin(user);
 
     if (!isOwner && !isAdmin) {
       log.error(NAMESPACE, `deleteProject: Not authorized to delete this project`);
@@ -210,7 +210,7 @@ const deleteProject = async (id, userId) => {
   }
 };
 
-const addProjectMember = async (projectId, memberUserId, role, userId) => {
+const addProjectMember = async (projectId, memberUserId, role, user) => {
   try {
     const project = await prisma.projects.findUnique({
       where: { project_id: Number(projectId) }
@@ -222,8 +222,8 @@ const addProjectMember = async (projectId, memberUserId, role, userId) => {
     }
 
     // Only owner can add members (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(userId, Number(projectId));
-    const isAdmin = await isAdmin(userId);
+    const isOwner = await isProjectOwner(user.userId, Number(projectId));
+    const isAdmin = await isAdmin(user);
 
     if (!isOwner && !isAdmin) {
       log.error(NAMESPACE, `addProjectMember: Not authorized to add members to this project`);
@@ -231,11 +231,11 @@ const addProjectMember = async (projectId, memberUserId, role, userId) => {
     }
 
     // Check if user exists
-    const user = await prisma.users.findUnique({
+    const targetUser = await prisma.users.findUnique({
       where: { user_id: Number(memberUserId) }
     });
 
-    if (!user) {
+    if (!targetUser) {
       log.error(NAMESPACE, `addProjectMember: User not found`);
       throw new Error('User not found');
     }
@@ -270,7 +270,7 @@ const addProjectMember = async (projectId, memberUserId, role, userId) => {
   }
 };
 
-const removeProjectMember = async (projectId, memberUserId, userId) => {
+const removeProjectMember = async (projectId, memberUserId, user) => {
   try {
     const project = await prisma.projects.findUnique({
       where: { project_id: Number(projectId) }
@@ -282,8 +282,8 @@ const removeProjectMember = async (projectId, memberUserId, userId) => {
     }
 
     // Only owner can remove members (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(userId, Number(projectId));
-    const isAdmin = await isAdmin(userId);
+    const isOwner = await isProjectOwner(user.userId, Number(projectId));
+    const isAdmin = await isAdmin(user);
 
     if (!isOwner && !isAdmin) {
       log.error(NAMESPACE, `removeProjectMember: Not authorized to remove members from this project`);
@@ -327,11 +327,11 @@ const removeProjectMember = async (projectId, memberUserId, userId) => {
 };
 
 // Dependencies
-const getTasksByProject = async (projectId, userId) => {
+const getTasksByProject = async (projectId, user) => {
   try {
     // Check if user has access to the project (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(userId, Number(projectId));
-    const isMember = await isProjectMember(userId, Number(projectId));
+    const isOwner = await isProjectOwner(user.userId, Number(projectId));
+    const isMember = await isProjectMember(user.userId, Number(projectId));
 
     if (!isOwner && !isMember) {
       throw new Error('Not authorized to view tasks in this project');

@@ -7,7 +7,7 @@ const NAMESPACE = CONFIG.server.env === 'PROD' ? 'PROJECT-CONTROLLER' : 'rest/co
 
 const getProjectById = async (req, res) => {
   try {
-    const project = await projectService.getProjectById(req.params.id, req.user.userId);
+    const project = await projectService.getProjectById(req.params.id, req.user);
     res.status(200).json(project);
   } catch (error) {
     if (error.message === 'Project not found') {
@@ -31,7 +31,7 @@ const getAllProjects = async (req, res) => {
 
 const getMyProjects = async (req, res) => {
   try {
-    const projects = await projectService.getMyProjects(req.user.userId);
+    const projects = await projectService.getMyProjects(req.user);
     res.status(200).json(projects);
   } catch (error) {
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
@@ -40,7 +40,7 @@ const getMyProjects = async (req, res) => {
 
 const getProjectMembers = async (req, res) => {
   try {
-    const members = await projectService.getProjectMembers(req.params.id, req.user.userId);
+    const members = await projectService.getProjectMembers(req.params.id, req.user);
     res.status(200).json(members);
   } catch (error) {
     if (error.message === 'Project not found') {
@@ -55,7 +55,7 @@ const getProjectMembers = async (req, res) => {
 
 const createProject = async (req, res) => {
   try {
-    const project = await projectService.createProject(req.body, req.user.userId);
+    const project = await projectService.createProject(req.body, req.user);
     res.status(201).json(project);
   } catch (error) {
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
@@ -64,7 +64,7 @@ const createProject = async (req, res) => {
 
 const updateProject = async (req, res) => {
   try {
-    const project = await projectService.updateProject(req.params.id, req.body, req.user.userId);
+    const project = await projectService.updateProject(req.params.id, req.body, req.user);
     res.status(200).json(project);
   } catch (error) {
     if (error.message === 'Project not found') {
@@ -79,7 +79,7 @@ const updateProject = async (req, res) => {
 
 const deleteProject = async (req, res) => {
   try {
-    await projectService.deleteProject(req.params.id, req.user.userId);
+    await projectService.deleteProject(req.params.id, req.user);
     res.status(200).json({ message: 'Project deleted successfully' });
   } catch (error) {
     if (error.message === 'Project not found') {
@@ -95,7 +95,7 @@ const deleteProject = async (req, res) => {
 const addProjectMember = async (req, res) => {
   try {
     const { userId, role } = req.body;
-    const member = await projectService.addProjectMember(req.params.id, userId, role, req.user.userId);
+    const member = await projectService.addProjectMember(req.params.id, userId, role, req.user);
     res.status(201).json(member);
   } catch (error) {
     if (error.message === 'Project not found' || error.message === 'User not found') {
@@ -113,7 +113,7 @@ const addProjectMember = async (req, res) => {
 
 const removeProjectMember = async (req, res) => {
   try {
-    await projectService.removeProjectMember(req.params.id, req.params.userId, req.user.userId);
+    await projectService.removeProjectMember(req.params.id, req.params.userId, req.user);
     res.status(200).json({ message: 'Member removed successfully' });
   } catch (error) {
     if (error.message === 'Project not found') {
@@ -132,7 +132,7 @@ const removeProjectMember = async (req, res) => {
 // Dependencies
 const getTasksByProject = async (req, res) => {
   try {
-    const tasks = await projectService.getTasksByProject(req.params.projectId, req.user.userId);
+    const tasks = await projectService.getTasksByProject(req.params.projectId, req.user);
     res.status(200).json(tasks);
   } catch (error) {
     if (error.message === 'Project not found') {

@@ -14,6 +14,10 @@ export const isProjectOwner = async (userId, projectId) => {
   return project?.owner_id === userId;
 };
 
+export const isCommentAuthor = (userId, comment) => {
+  return comment?.user_id === userId;
+};
+
 export const isProjectMember = async (userId, projectId) => {
   const member = await prisma.project_members.findFirst({
     where: {

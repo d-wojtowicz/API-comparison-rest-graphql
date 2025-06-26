@@ -1,7 +1,7 @@
 import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
-import { hasTaskAccess, isSelf } from '../utils/permissions.js';
+import { hasTaskAccess, isSuperAdmin, isCommentAuthor, isAdmin } from '../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'COMMENT-SERVICE' : 'rest/services/comments.service.js';
 
@@ -16,7 +16,7 @@ const getCommentById = async (id) => {
   }
 };
 
-const createComment = async (commentData, userId) => {
+const createComment = async (commentData, user) => {
   try {
     const { task_id, comment_text } = commentData;
 
@@ -26,28 +26,37 @@ const createComment = async (commentData, userId) => {
     });
 
     if (!task) {
+      log.error(NAMESPACE, `createComment: Task not found`);
       throw new Error('Task not found');
     }
 
-    const hasAccess = await hasTaskAccess({ userId }, task);
-    if (!hasAccess) {
+    const hasAccess = await hasTaskAccess(user, task);
+    const isAdmin = await isAdmin(user);
+
+    if (!hasAccess && !isAdmin) {
+      log.error(NAMESPACE, `createComment: User not authorized to create comments for this task`);
       throw new Error('Not authorized to create comments for this task');
     }
 
-    return await prisma.task_comments.create({
+    const comment = await prisma.task_comments.create({
       data: {
         task_id: Number(task_id),
-        user_id: userId,
+        user_id: user.userId,
         comment_text
       }
     });
+
+    // TODO: Add subscription-similar mechanism for comments (like pubsub in graphql)
+    // TODO: Notify the task assignee about the new comment
+
+    return comment;
   } catch (error) {
     log.error(NAMESPACE, `createComment: ${error.message}`);
     throw error;
   }
 };
 
-const updateComment = async (id, commentData, userId) => {
+const updateComment = async (id, commentData, user) => {
   try {
     const { comment_text } = commentData;
 
@@ -56,11 +65,13 @@ const updateComment = async (id, commentData, userId) => {
     });
 
     if (!comment) {
+      log.error(NAMESPACE, `updateComment: Comment not found`);
       throw new Error('Comment not found');
     }
 
     // Check if user is the author of the comment (admin check is handled by middleware)
-    if (!isSelf({ userId }, comment.user_id)) {
+    if (!isCommentAuthor(user.userId, comment) && !isSuperAdmin(user)) {
+      log.error(NAMESPACE, `updateComment: User not authorized to update this comment`);
       throw new Error('Not authorized to update this comment');
     }
 
@@ -74,18 +85,20 @@ const updateComment = async (id, commentData, userId) => {
   }
 };
 
-const deleteComment = async (id, userId) => {
+const deleteComment = async (id, user) => {
   try {
     const comment = await prisma.task_comments.findUnique({
       where: { comment_id: Number(id) }
     });
 
     if (!comment) {
+      log.error(NAMESPACE, `deleteComment: Comment not found`);
       throw new Error('Comment not found');
     }
 
     // Check if user is the author of the comment (admin check is handled by middleware)
-    if (!isSelf({ userId }, comment.user_id)) {
+    if (!isCommentAuthor(user.userId, comment) && !isAdmin(user)) {
+      log.error(NAMESPACE, `deleteComment: User not authorized to delete this comment`);
       throw new Error('Not authorized to delete this comment');
     }
 

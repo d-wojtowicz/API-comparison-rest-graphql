@@ -16,7 +16,7 @@ const getAttachmentById = async (id) => {
   }
 };
 
-const getTaskAttachments = async (taskId, userId) => {
+const getTaskAttachments = async (taskId, user) => {
   try {
     // Check if user has access to the task (admin check is handled by middleware)
     const task = await prisma.tasks.findUnique({
@@ -27,7 +27,7 @@ const getTaskAttachments = async (taskId, userId) => {
       throw new Error('Task not found');
     }
 
-    const hasAccess = await hasTaskAccess({ userId }, task);
+    const hasAccess = await hasTaskAccess(user, task);
     if (!hasAccess) {
       throw new Error('Not authorized to view attachments for this task');
     }
@@ -42,7 +42,7 @@ const getTaskAttachments = async (taskId, userId) => {
   }
 };
 
-const createAttachment = async (attachmentData, userId) => {
+const createAttachment = async (attachmentData, user) => {
   try {
     const { task_id, file_path } = attachmentData;
 
@@ -55,7 +55,7 @@ const createAttachment = async (attachmentData, userId) => {
       throw new Error('Task not found');
     }
 
-    const hasAccess = await hasTaskAccess({ userId }, task);
+    const hasAccess = await hasTaskAccess(user, task);
     if (!hasAccess) {
       throw new Error('Not authorized to create attachments for this task');
     }
@@ -72,7 +72,7 @@ const createAttachment = async (attachmentData, userId) => {
   }
 };
 
-const updateAttachment = async (id, attachmentData, userId) => {
+const updateAttachment = async (id, attachmentData, user) => {
   try {
     const { file_path } = attachmentData;
 
@@ -88,7 +88,7 @@ const updateAttachment = async (id, attachmentData, userId) => {
     }
 
     // Check if user has access to the task (admin check is handled by middleware)
-    const hasAccess = await hasTaskAccess({ userId }, attachment.tasks);
+    const hasAccess = await hasTaskAccess(user, attachment.tasks);
     if (!hasAccess) {
       throw new Error('Not authorized to update this attachment');
     }
@@ -103,7 +103,7 @@ const updateAttachment = async (id, attachmentData, userId) => {
   }
 };
 
-const deleteAttachment = async (id, userId) => {
+const deleteAttachment = async (id, user) => {
   try {
     const attachment = await prisma.task_attachments.findUnique({
       where: { attachment_id: Number(id) },
@@ -117,7 +117,7 @@ const deleteAttachment = async (id, userId) => {
     }
 
     // Check if user has access to the task (admin check is handled by middleware)
-    const hasAccess = await hasTaskAccess({ userId }, attachment.tasks);
+    const hasAccess = await hasTaskAccess(user, attachment.tasks);
     if (!hasAccess) {
       throw new Error('Not authorized to delete this attachment');
     }
