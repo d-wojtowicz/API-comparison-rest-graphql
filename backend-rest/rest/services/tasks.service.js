@@ -263,6 +263,39 @@ const getTaskComments = async (taskId, user) => {
   }
 };
 
+const getTaskAttachments = async (taskId, user) => {
+  try {
+    // Check if user has access to the task (admin check is handled by middleware)
+    const task = await prisma.tasks.findUnique({
+      where: { task_id: Number(taskId) }
+    });
+
+    if (!task) {
+      log.error(NAMESPACE, `getTaskAttachments: Task not found`);
+      throw new Error('Task not found');
+    }
+
+    const hasAccess = await hasTaskAccess(user, task);
+    const isAdmin = await isAdmin(user);
+    
+    if (!hasAccess && !isAdmin) {
+      log.error(NAMESPACE, `getTaskAttachments: User not authorized to view attachments for this task`);
+      throw new Error('Not authorized to view attachments for this task');
+    }
+
+    const taskAttachments = await prisma.task_attachments.findMany({
+      where: { task_id: Number(taskId) },
+      orderBy: { uploaded_at: 'desc' }
+    });
+
+    return taskAttachments;
+  } catch (error) {
+    log.error(NAMESPACE, `getTaskAttachments: ${error.message}`);
+    throw error;
+  }
+};
+
+
 export default {
   getTaskById,
   createTask,
@@ -271,5 +304,6 @@ export default {
   assignTask,
   updateTaskStatus,
   // Dependencies
-  getTaskComments
+  getTaskComments,
+  getTaskAttachments
 }; 

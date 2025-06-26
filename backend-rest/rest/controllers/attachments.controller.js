@@ -17,21 +17,6 @@ const getAttachmentById = async (req, res) => {
   }
 };
 
-const getTaskAttachments = async (req, res) => {
-  try {
-    const attachments = await attachmentService.getTaskAttachments(req.params.taskId, req.user);
-    res.status(200).json(attachments);
-  } catch (error) {
-    if (error.message === 'Task not found') {
-      return res.status(404).json({ message: error.message });
-    }
-    if (error.message === 'Not authorized to view attachments for this task') {
-      return res.status(403).json({ message: error.message });
-    }
-    res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
-  }
-};
-
 const createAttachment = async (req, res) => {
   try {
     const attachment = await attachmentService.createAttachment(req.body, req.user);
@@ -79,7 +64,6 @@ const deleteAttachment = async (req, res) => {
 
 export default {
   getAttachmentById,
-  getTaskAttachments,
   createAttachment,
   updateAttachment,
   deleteAttachment

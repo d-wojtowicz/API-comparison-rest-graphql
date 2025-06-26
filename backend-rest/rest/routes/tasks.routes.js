@@ -26,4 +26,8 @@ router.put('/:id/status', verifyTokenMiddleware, tasksController.updateTaskStatu
 // Get comments for a task
 router.get('/:taskId/comments', verifyTokenMiddleware, tasksController.getTaskComments);
 
+// Get attachments for a task
+router.get('/:taskId/attachments', verifyTokenMiddleware, tasksController.getTaskAttachments);
+
+
 export default router; 
