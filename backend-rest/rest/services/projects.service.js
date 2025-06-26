@@ -12,14 +12,17 @@ const getProjectById = async (id, userId) => {
     });
 
     if (!project) {
+      log.error(NAMESPACE, `getProjectById: Project not found`);
       throw new Error('Project not found');
     }
 
-    // Check if user is owner, member, or admin (admin check is handled by middleware)
+    // Check if user is owner, member, or admin
     const isOwner = await isProjectOwner(userId, Number(id));
     const isMember = await isProjectMember(userId, Number(id));
+    const isAdmin = await isAdmin(userId);
 
-    if (!isOwner && !isMember) {
+    if (!isOwner && !isMember && !isAdmin) {
+      log.error(NAMESPACE, `getProjectById: Not authorized to access this project`);
       throw new Error('Not authorized to access this project');
     }
 
@@ -76,22 +79,22 @@ const getProjectMembers = async (projectId, userId) => {
     });
 
     if (!project) {
+      log.error(NAMESPACE, `getProjectMembers: Project not found`);
       throw new Error('Project not found');
     }
 
     // Check if user is owner, member, or admin (admin check is handled by middleware)
     const isOwner = await isProjectOwner(userId, Number(projectId));
     const isMember = await isProjectMember(userId, Number(projectId));
+    const isAdmin = await isAdmin(userId);
 
-    if (!isOwner && !isMember) {
+    if (!isOwner && !isMember && !isAdmin) {
+      log.error(NAMESPACE, `getProjectMembers: Not authorized to view project members`);
       throw new Error('Not authorized to view project members');
     }
 
     return await prisma.project_members.findMany({
-      where: { project_id: Number(projectId) },
-      include: {
-        users: true
-      }
+      where: { project_id: Number(projectId) }
     });
   } catch (error) {
     log.error(NAMESPACE, `getProjectMembers: ${error.message}`);
@@ -108,6 +111,9 @@ const createProject = async (projectData, userId) => {
         project_name,
         description,
         owner_id: userId
+      },
+      include: {
+        users: true
       }
     });
 
@@ -134,22 +140,33 @@ const updateProject = async (id, projectData, userId) => {
     });
 
     if (!project) {
+      log.error(NAMESPACE, `updateProject: Project not found`);
       throw new Error('Project not found');
     }
 
     // Only owner can update project (admin check is handled by middleware)
     const isOwner = await isProjectOwner(userId, Number(id));
-    if (!isOwner) {
+    const isAdmin = await isAdmin(userId);
+
+    if (!isOwner && !isAdmin) {
+      log.error(NAMESPACE, `updateProject: Not authorized to update this project`);
       throw new Error('Not authorized to update this project');
     }
 
-    return await prisma.projects.update({
+    const updatedProject = await prisma.projects.update({
       where: { project_id: Number(id) },
       data: {
         ...projectData,
         updated_at: new Date()
+      },
+      include: {
+        users: true
       }
     });
+
+    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
+
+    return updatedProject;
   } catch (error) {
     log.error(NAMESPACE, `updateProject: ${error.message}`);
     throw error;
@@ -166,12 +183,16 @@ const deleteProject = async (id, userId) => {
     });
 
     if (!project) {
+      log.error(NAMESPACE, `deleteProject: Project not found`);
       throw new Error('Project not found');
     }
 
     // Only owner can delete project (admin check is handled by middleware)
     const isOwner = await isProjectOwner(userId, Number(id));
-    if (!isOwner) {
+    const isAdmin = await isAdmin(userId);
+
+    if (!isOwner && !isAdmin) {
+      log.error(NAMESPACE, `deleteProject: Not authorized to delete this project`);
       throw new Error('Not authorized to delete this project');
     }
 
@@ -180,6 +201,8 @@ const deleteProject = async (id, userId) => {
       where: { project_id: Number(id) }
     });
 
+    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
+    
     return true;
   } catch (error) {
     log.error(NAMESPACE, `deleteProject: ${error.message}`);
@@ -194,12 +217,16 @@ const addProjectMember = async (projectId, memberUserId, role, userId) => {
     });
 
     if (!project) {
+      log.error(NAMESPACE, `addProjectMember: Project not found`);
       throw new Error('Project not found');
     }
 
     // Only owner can add members (admin check is handled by middleware)
     const isOwner = await isProjectOwner(userId, Number(projectId));
-    if (!isOwner) {
+    const isAdmin = await isAdmin(userId);
+
+    if (!isOwner && !isAdmin) {
+      log.error(NAMESPACE, `addProjectMember: Not authorized to add members to this project`);
       throw new Error('Not authorized to add members to this project');
     }
 
@@ -209,6 +236,7 @@ const addProjectMember = async (projectId, memberUserId, role, userId) => {
     });
 
     if (!user) {
+      log.error(NAMESPACE, `addProjectMember: User not found`);
       throw new Error('User not found');
     }
 
@@ -221,19 +249,21 @@ const addProjectMember = async (projectId, memberUserId, role, userId) => {
     });
 
     if (existingMember) {
+      log.error(NAMESPACE, `addProjectMember: User is already a member of this project`);
       throw new Error('User is already a member of this project');
     }
 
-    return await prisma.project_members.create({
+    const newMember = await prisma.project_members.create({
       data: {
         project_id: Number(projectId),
         user_id: Number(memberUserId),
-        role: role || 'member'
-      },
-      include: {
-        users: true
+        role
       }
     });
+
+    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
+
+    return newMember;
   } catch (error) {
     log.error(NAMESPACE, `addProjectMember: ${error.message}`);
     throw error;
@@ -247,19 +277,24 @@ const removeProjectMember = async (projectId, memberUserId, userId) => {
     });
 
     if (!project) {
+      log.error(NAMESPACE, `removeProjectMember: Project not found`);
       throw new Error('Project not found');
     }
 
     // Only owner can remove members (admin check is handled by middleware)
     const isOwner = await isProjectOwner(userId, Number(projectId));
-    if (!isOwner) {
+    const isAdmin = await isAdmin(userId);
+
+    if (!isOwner && !isAdmin) {
+      log.error(NAMESPACE, `removeProjectMember: Not authorized to remove members from this project`);
       throw new Error('Not authorized to remove members from this project');
     }
 
     // Prevent removing the project owner
     if (Number(memberUserId) === project.owner_id) {
+      log.error(NAMESPACE, `removeProjectMember: Cannot remove project owner`);
       throw new Error('Cannot remove project owner');
-    }
+    } 
 
     const member = await prisma.project_members.findFirst({
       where: {
@@ -269,6 +304,7 @@ const removeProjectMember = async (projectId, memberUserId, userId) => {
     });
 
     if (!member) {
+      log.error(NAMESPACE, `removeProjectMember: User is not a member of this project`);
       throw new Error('User is not a member of this project');
     }
 
@@ -280,6 +316,8 @@ const removeProjectMember = async (projectId, memberUserId, userId) => {
         }
       }
     });
+
+    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
 
     return true;
   } catch (error) {

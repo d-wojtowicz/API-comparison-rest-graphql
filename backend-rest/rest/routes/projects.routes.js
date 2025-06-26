@@ -17,19 +17,19 @@ router.get('/my', verifyTokenMiddleware, projectsController.getMyProjects);
 router.get('/:id/members', verifyTokenMiddleware, projectsController.getProjectMembers);
 
 // Create new project
-router.post('/', verifyTokenMiddleware, projectsController.createProject);
+router.post('/', verifyTokenMiddleware, requireAdmin, projectsController.createProject);
 
 // Update project
-router.put('/:id', verifyTokenMiddleware, projectsController.updateProject);
+router.put('/:id', verifyTokenMiddleware, requireAdmin, projectsController.updateProject);
 
 // Delete project
-router.delete('/:id', verifyTokenMiddleware, projectsController.deleteProject);
+router.delete('/:id', verifyTokenMiddleware, requireAdmin, projectsController.deleteProject);
 
 // Add project member
-router.post('/:id/members', verifyTokenMiddleware, projectsController.addProjectMember);
+router.post('/:id/members', verifyTokenMiddleware, requireAdmin, projectsController.addProjectMember);
 
 // Remove project member
-router.delete('/:id/members/:userId', verifyTokenMiddleware, projectsController.removeProjectMember);
+router.delete('/:id/members/:userId', verifyTokenMiddleware, requireAdmin, projectsController.removeProjectMember);
 
 // Dependencies
 // Get tasks by project
