@@ -1,6 +1,6 @@
 import express from 'express';
 import controller from '../controllers/notifications.controller.js';
-import { verifyTokenMiddleware, requireAdmin } from '../../middleware/auth.middleware.js';
+import { verifyTokenMiddleware, requireSuperAdmin } from '../../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -13,8 +13,8 @@ router.get('/unread/count', verifyTokenMiddleware, controller.getUnreadNotificat
 // Get notification by ID
 router.get('/:id', verifyTokenMiddleware, controller.getNotificationById);
 
-// Create new notification (admin only)
-router.post('/', verifyTokenMiddleware, requireAdmin, controller.createNotification);
+// Create new notification (superadmin only)
+router.post('/', verifyTokenMiddleware, requireSuperAdmin, controller.createNotification);
 
 // Update notification (mark as read)
 router.put('/:id', verifyTokenMiddleware, controller.updateNotification);

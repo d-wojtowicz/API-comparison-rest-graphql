@@ -3,7 +3,7 @@
 import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
-
+import { isNotificationOwner, isSuperAdmin } from '../utils/permissions.js';
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'NOTIFICATION-SERVICE' : 'rest/services/notifications.service.js';
 
 const getMyNotifications = async (userId) => {
@@ -39,11 +39,13 @@ const getNotificationById = async (id, userId) => {
     });
 
     if (!notification) {
+      log.error(NAMESPACE, `getNotificationById: Notification not found`);
       throw new Error('Notification not found');
     }
 
     // Users can only view their own notifications
-    if (notification.user_id !== userId) {
+    if (!isNotificationOwner(userId, notification) && !isSuperAdmin(userId)) {
+      log.error(NAMESPACE, `getNotificationById: Not authorized to view this notification`);
       throw new Error('Not authorized to view this notification');
     }
 
@@ -64,16 +66,21 @@ const createNotification = async (notificationData) => {
     });
 
     if (!user) {
+      log.error(NAMESPACE, `createNotification: User not found`);
       throw new Error('User not found');
     }
 
-    return await prisma.notifications.create({
+    const notification = await prisma.notifications.create({
       data: {
         user_id: Number(user_id),
         message,
         is_read: false
       }
     });
+
+    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
+
+    return notification;
   } catch (error) {
     log.error(NAMESPACE, `createNotification: ${error.message}`);
     throw error;
@@ -89,18 +96,24 @@ const updateNotification = async (id, notificationData, userId) => {
     });
 
     if (!notification) {
+      log.error(NAMESPACE, `updateNotification: Notification not found`);
       throw new Error('Notification not found');
     }
 
     // Users can only update their own notifications
-    if (notification.user_id !== userId) {
+      if (!isNotificationOwner(userId, notification) && !isSuperAdmin(userId)) {
+      log.error(NAMESPACE, `updateNotification: Not authorized to update this notification`);
       throw new Error('Not authorized to update this notification');
     }
 
-    return await prisma.notifications.update({
+    const updatedNotification = await prisma.notifications.update({
       where: { notification_id: Number(id) },
       data: { is_read }
     });
+
+    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
+
+    return updatedNotification;
   } catch (error) {
     log.error(NAMESPACE, `updateNotification: ${error.message}`);
     throw error;
@@ -133,11 +146,13 @@ const deleteNotification = async (id, userId) => {
     });
 
     if (!notification) {
+      log.error(NAMESPACE, `deleteNotification: Notification not found`);
       throw new Error('Notification not found');
     }
 
     // Users can only delete their own notifications
-    if (notification.user_id !== userId) {
+    if (!isNotificationOwner(userId, notification) && !isSuperAdmin(userId)) {
+      log.error(NAMESPACE, `deleteNotification: Not authorized to delete this notification`);
       throw new Error('Not authorized to delete this notification');
     }
 

@@ -2,6 +2,11 @@ import prisma from '../../db/client.js';
 
 // ENDPOINT-LEVEL AUTHENTICATION: Helper functions for business logic permissions
 // These are NOT role-based checks (admin/superadmin) - those are handled by middleware
+
+export const isNotificationOwner = (userId, notification) => {
+  return notification?.user_id === userId;
+};
+
 export const isProjectOwner = async (userId, projectId) => {
   const project = await prisma.projects.findUnique({
     where: { project_id: Number(projectId) }

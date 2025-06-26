@@ -22,7 +22,7 @@ export const notificationTypeDefs = gql`
   }
 
   extend type Query {
-    myNotifications: [Notification!]!
+    myNotifications: [Notification!]! @auth
     unreadNotificationsCount: Int! @auth
     notification(id: ID!): Notification @auth
   }
