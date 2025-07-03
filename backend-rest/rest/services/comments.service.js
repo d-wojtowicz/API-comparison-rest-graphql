@@ -31,9 +31,8 @@ const createComment = async (commentData, user) => {
     }
 
     const hasAccess = await hasTaskAccess(user, task);
-    const isAdmin = await isAdmin(user);
 
-    if (!hasAccess && !isAdmin) {
+    if (!hasAccess && !isAdmin(user)) {
       log.error(NAMESPACE, `createComment: User not authorized to create comments for this task`);
       throw new Error('Not authorized to create comments for this task');
     }

@@ -4,14 +4,14 @@ import { verifyTokenMiddleware, requireAdmin } from '../../middleware/auth.middl
 
 const router = express.Router();
 
+// Get user's projects
+router.get('/my', verifyTokenMiddleware, projectsController.getMyProjects);
+
 // Get project by ID
 router.get('/:id', verifyTokenMiddleware, projectsController.getProjectById);
 
 // Get all projects (admin only)
 router.get('/', verifyTokenMiddleware, requireAdmin, projectsController.getAllProjects);
-
-// Get user's projects
-router.get('/my', verifyTokenMiddleware, projectsController.getMyProjects);
 
 // Get project members
 router.get('/:id/members', verifyTokenMiddleware, projectsController.getProjectMembers);

@@ -16,11 +16,11 @@ router.get('/:id', verifyTokenMiddleware, controller.getNotificationById);
 // Create new notification (superadmin only)
 router.post('/', verifyTokenMiddleware, requireSuperAdmin, controller.createNotification);
 
-// Update notification (mark as read)
-router.put('/:id', verifyTokenMiddleware, controller.updateNotification);
-
 // Mark all notifications as read
 router.put('/mark-all-read', verifyTokenMiddleware, controller.markAllNotificationsAsRead);
+
+// Update notification (mark as read)
+router.put('/:id', verifyTokenMiddleware, controller.updateNotification);
 
 // Delete notification
 router.delete('/:id', verifyTokenMiddleware, controller.deleteNotification);

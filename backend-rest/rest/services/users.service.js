@@ -233,7 +233,7 @@ const deleteUser = async (id, currentUser) => {
 const getTasksByAssignee = async (assigneeId, user) => {
   try {
     // Users can only view their own assigned tasks unless they're admin (admin check is handled by middleware)
-    if (!isSelf(user, Number(assigneeId))) {
+    if (!isSelf(user, Number(assigneeId)) && !isAdmin(user)) {
       throw new Error('Not authorized to view these tasks');
     }
 

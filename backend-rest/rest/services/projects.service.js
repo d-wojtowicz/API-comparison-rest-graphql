@@ -19,9 +19,8 @@ const getProjectById = async (id, user) => {
     // Check if user is owner, member, or admin
     const isOwner = await isProjectOwner(user.userId, Number(id));
     const isMember = await isProjectMember(user.userId, Number(id));
-    const isAdmin = await isAdmin(user);
 
-    if (!isOwner && !isMember && !isAdmin) {
+    if (!isOwner && !isMember && !isAdmin(user)) {
       log.error(NAMESPACE, `getProjectById: Not authorized to access this project`);
       throw new Error('Not authorized to access this project');
     }
@@ -86,9 +85,8 @@ const getProjectMembers = async (projectId, user) => {
     // Check if user is owner, member, or admin (admin check is handled by middleware)
     const isOwner = await isProjectOwner(user.userId, Number(projectId));
     const isMember = await isProjectMember(user.userId, Number(projectId));
-    const isAdmin = await isAdmin(user);
 
-    if (!isOwner && !isMember && !isAdmin) {
+    if (!isOwner && !isMember && !isAdmin(user)) {
       log.error(NAMESPACE, `getProjectMembers: Not authorized to view project members`);
       throw new Error('Not authorized to view project members');
     }
@@ -111,9 +109,6 @@ const createProject = async (projectData, user) => {
         project_name,
         description,
         owner_id: user.userId
-      },
-      include: {
-        users: true
       }
     });
 
@@ -146,9 +141,8 @@ const updateProject = async (id, projectData, user) => {
 
     // Only owner can update project (admin check is handled by middleware)
     const isOwner = await isProjectOwner(user.userId, Number(id));
-    const isAdmin = await isAdmin(user);
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdmin(user)) {
       log.error(NAMESPACE, `updateProject: Not authorized to update this project`);
       throw new Error('Not authorized to update this project');
     }
@@ -158,9 +152,6 @@ const updateProject = async (id, projectData, user) => {
       data: {
         ...projectData,
         updated_at: new Date()
-      },
-      include: {
-        users: true
       }
     });
 
@@ -189,9 +180,8 @@ const deleteProject = async (id, user) => {
 
     // Only owner can delete project (admin check is handled by middleware)
     const isOwner = await isProjectOwner(user.userId, Number(id));
-    const isAdmin = await isAdmin(user);
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdmin(user)) {
       log.error(NAMESPACE, `deleteProject: Not authorized to delete this project`);
       throw new Error('Not authorized to delete this project');
     }
@@ -223,9 +213,8 @@ const addProjectMember = async (projectId, memberUserId, role, user) => {
 
     // Only owner can add members (admin check is handled by middleware)
     const isOwner = await isProjectOwner(user.userId, Number(projectId));
-    const isAdmin = await isAdmin(user);
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdmin(user)) {
       log.error(NAMESPACE, `addProjectMember: Not authorized to add members to this project`);
       throw new Error('Not authorized to add members to this project');
     }
@@ -283,9 +272,8 @@ const removeProjectMember = async (projectId, memberUserId, user) => {
 
     // Only owner can remove members (admin check is handled by middleware)
     const isOwner = await isProjectOwner(user.userId, Number(projectId));
-    const isAdmin = await isAdmin(user);
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdmin(user)) {
       log.error(NAMESPACE, `removeProjectMember: Not authorized to remove members from this project`);
       throw new Error('Not authorized to remove members from this project');
     }

@@ -18,8 +18,7 @@ const getTaskById = async (id, user) => {
 
     // Check if user has access to the task (admin check is handled by middleware)
     const hasAccess = await hasTaskAccess(user, task);
-    const isAdmin = await isAdmin(user);
-    if (!hasAccess && !isAdmin) {
+    if (!hasAccess && !isAdmin(user)) {
       log.error(NAMESPACE, `getTaskById: User not authorized to view this task`);
       throw new Error('Not authorized to view this task');
     }
@@ -38,9 +37,8 @@ const createTask = async (taskData, user) => {
     // Check if user has access to the project (admin check is handled by middleware)
     const isOwner = await isProjectOwner(user.userId, Number(project_id));
     const isMember = await isProjectMember(user.userId, Number(project_id));
-    const isAdmin = await isAdmin(user);
 
-    if (!isOwner && !isMember && !isAdmin) {
+    if (!isOwner && !isMember && !isAdmin(user)) {
       log.error(NAMESPACE, `createTask: User not authorized to create tasks in this project`);
       throw new Error('Not authorized to create tasks in this project');
     }
@@ -83,8 +81,7 @@ const updateTask = async (id, taskData, user) => {
 
     // Check if user has access to the task (admin check is handled by middleware)
     const hasAccess = await hasTaskAccess(user, task);
-    const isAdmin = await isAdmin(user);
-    if (!hasAccess && !isAdmin) {
+    if (!hasAccess && !isAdmin(user)) {
       log.error(NAMESPACE, `updateTask: User not authorized to update this task`);
       throw new Error('Not authorized to update this task');
     }
@@ -131,8 +128,7 @@ const deleteTask = async (id, user) => {
 
     // Check if user has access to the task (admin check is handled by middleware)
     const isOwner = await isProjectOwner(user.userId, task.project_id);
-    const isAdmin = await isAdmin(user);
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdmin(user)) {
       log.error(NAMESPACE, `deleteTask: User not authorized to delete this task`);
       throw new Error('Not authorized to delete this task');
     }
@@ -161,9 +157,8 @@ const assignTask = async (id, assigneeId, user) => {
 
     // Check if user has access to the project
     const hasAccess = await hasTaskAccess(user, task);
-    const isAdmin = await isAdmin(user);
 
-    if (!hasAccess && !isAdmin) {
+    if (!hasAccess && !isAdmin(user)) {
       log.error(NAMESPACE, `assignTask: User not authorized to assign this task`);
       throw new Error('Not authorized to assign this task');
     }
@@ -203,8 +198,7 @@ const updateTaskStatus = async (id, statusId, user) => {
 
     // Check if user has access to the project
     const hasAccess = await hasTaskAccess(user, task);
-    const isAdmin = await isAdmin(user);
-    if (!hasAccess && !isAdmin) {
+    if (!hasAccess && !isAdmin(user)) {
       log.error(NAMESPACE, `updateTaskStatus: User not authorized to update this task status`);
       throw new Error('Not authorized to update this task status');
     }
@@ -246,9 +240,8 @@ const getTaskComments = async (taskId, user) => {
     }
 
     const hasAccess = await hasTaskAccess(user, task);
-    const isAdmin = await isAdmin(user);
 
-    if (!hasAccess && !isAdmin) {
+    if (!hasAccess && !isAdmin(user)) {
       log.error(NAMESPACE, `getTaskComments: User not authorized to view comments for this task`);
       throw new Error('Not authorized to view comments for this task');
     }
@@ -276,9 +269,8 @@ const getTaskAttachments = async (taskId, user) => {
     }
 
     const hasAccess = await hasTaskAccess(user, task);
-    const isAdmin = await isAdmin(user);
     
-    if (!hasAccess && !isAdmin) {
+    if (!hasAccess && !isAdmin(user)) {
       log.error(NAMESPACE, `getTaskAttachments: User not authorized to view attachments for this task`);
       throw new Error('Not authorized to view attachments for this task');
     }

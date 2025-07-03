@@ -1,7 +1,7 @@
 import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
-import { hasTaskAccess } from '../utils/permissions.js';
+import { isAdmin, hasTaskAccess } from '../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'ATTACHMENT-SERVICE' : 'rest/services/attachments.service.js';
 
@@ -17,8 +17,7 @@ const getAttachmentById = async (id, user) => {
     }
 
     const hasAccess = await hasTaskAccess(user, attachment.task_id);
-    const isAdmin = await isAdmin(user);
-    if (!hasAccess && !isAdmin) {
+    if (!hasAccess && !isAdmin(user)) {
       log.error(NAMESPACE, `getAttachmentById: User not authorized to view this attachment`);
       throw new Error('Not authorized to view this attachment');
     }
@@ -45,8 +44,7 @@ const createAttachment = async (attachmentData, user) => {
     }
 
     const hasAccess = await hasTaskAccess(user, task);
-    const isAdmin = await isAdmin(user);
-    if (!hasAccess && !isAdmin) {
+    if (!hasAccess && !isAdmin(user)) {
       log.error(NAMESPACE, `createAttachment: User not authorized to create attachments for this task`);
       throw new Error('Not authorized to create attachments for this task');
     }
@@ -82,8 +80,7 @@ const updateAttachment = async (id, attachmentData, user) => {
     }
 
     const hasAccess = await hasTaskAccess(user, attachment.tasks);
-    const isAdmin = await isAdmin(user);
-    if (!hasAccess && !isAdmin) {
+    if (!hasAccess && !isAdmin(user)) {
       log.error(NAMESPACE, `updateAttachment: User not authorized to update this attachment`);
       throw new Error('Not authorized to update this attachment');
     }
@@ -111,8 +108,7 @@ const deleteAttachment = async (id, user) => {
 
     // Check if user has access to the task (admin check is handled by middleware)
     const hasAccess = await hasTaskAccess(user, attachment.tasks);
-    const isAdmin = await isAdmin(user);
-    if (!hasAccess && !isAdmin) {
+    if (!hasAccess && !isAdmin(user)) {
       log.error(NAMESPACE, `deleteAttachment: User not authorized to delete this attachment`);
       throw new Error('Not authorized to delete this attachment');
     }
