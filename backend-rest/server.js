@@ -4,6 +4,7 @@ import cors from 'cors';
 
 import CONFIG from './config/config.js';
 import log from './config/logging.js';
+import { rateLimitMiddleware } from './middleware/rateLimit.middleware.js';
 import userRoutes from './rest/routes/users.routes.js';
 import statusRoutes from './rest/routes/statuses.routes.js';
 import taskRoutes from './rest/routes/tasks.routes.js';
@@ -35,6 +36,9 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// Apply rate limiting to all API routes
+app.use('/api', rateLimitMiddleware);
 
 // API Routes
 app.use('/api/users', userRoutes);
