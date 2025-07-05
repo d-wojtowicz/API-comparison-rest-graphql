@@ -115,16 +115,21 @@ const getTasksByStatus = async (statusId, user) => {
     // For regular users, filter tasks based on project access (admin check is handled by middleware)
     const projectIds = [...new Set(tasks.map(task => task.project_id))];
     
-    const accessibleProjectIds = new Set();
-    
-    for (const projectId of projectIds) {
-      const isOwner = await isProjectOwner(user.userId, projectId);
-      const isMember = await isProjectMember(user.userId, projectId);
-
-      if (isOwner || isMember) {
-        accessibleProjectIds.add(projectId);
+    const accessibleProjects = await prisma.projects.findMany({
+      where: {
+        project_id: { in: projectIds },
+        OR: [
+          { owner_id: user.userId },
+          {
+            project_members: {
+              some: { user_id: user.userId }
+            }
+          }
+        ]
       }
-    }
+    });
+
+    const accessibleProjectIds = new Set(accessibleProjects.map(p => p.project_id));
 
     // Return only tasks from accessible projects
     return tasks.filter(task => accessibleProjectIds.has(task.project_id));
