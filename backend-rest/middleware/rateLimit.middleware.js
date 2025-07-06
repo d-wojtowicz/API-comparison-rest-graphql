@@ -2,6 +2,7 @@ import { CONSTANTS } from '../config/constants.js';
 import CONFIG from '../config/config.js';
 import log from '../config/logging.js';
 import { isAdmin } from '../rest/utils/permissions.js';
+import { validateToken, verifyToken } from '../utils/jwt.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'RATE-LIMIT-MIDDLEWARE' : 'middleware/rateLimit.middleware.js';
 
@@ -19,10 +20,26 @@ setInterval(() => {
 }, 60000);
 
 // Helper function to get client identifier (similar to GraphQL plugin)
-function getClientIdentifier(req) {
+async function getClientIdentifier(req) {
+  // If req.user is already set (from auth middleware), use it
   if (req.user) {
     return `user:${req.user.userId}`;
   }
+  
+  // Try to extract user from JWT token if present
+  const auth = req.headers.authorization;
+  if (validateToken(auth)) {
+    try {
+      const token = auth.slice(7).trim();
+      const user = await verifyToken(token);
+      if (user) {
+        return `user:${user.userId}`;
+      }
+    } catch (error) {
+      // Token is invalid, continue with IP-based identification
+    }
+  }
+  
   // For unauthenticated users, use IP address
   const ip = req.ip || req.connection?.remoteAddress || 'unknown';
   return `ip:${ip}`;
@@ -44,14 +61,14 @@ const getRateLimitConfig = (method, path) => {
   return CONSTANTS.RATE_LIMITS[endpoint] || CONSTANTS.RATE_LIMITS.DEFAULT;
 };
 
-export const rateLimitMiddleware = (req, res, next) => {
+export const rateLimitMiddleware = async (req, res, next) => {
   try {
     // Skip rate limiting for admin users in development
     if (CONFIG.server.env !== 'PROD' && isAdmin(req.user)) {
       return next();
     }
 
-    const clientId = getClientIdentifier(req);
+    const clientId = await getClientIdentifier(req);
     const method = req.method;
     const path = req.path;
     
@@ -76,8 +93,10 @@ export const rateLimitMiddleware = (req, res, next) => {
 
     // Check if rate limit exceeded (similar to GraphQL plugin error handling)
     if (rateLimitData.count > config.limit) {
-      const clientType = req.user ? 'user' : 'guest';
-      const clientIdentifier = req.user ? req.user.userId : req.ip || req.connection?.remoteAddress || 'unknown';
+      // Extract client info from the clientId
+      const isUser = clientId.startsWith('user:');
+      const clientType = isUser ? 'user' : 'guest';
+      const clientIdentifier = isUser ? clientId.replace('user:', '') : clientId.replace('ip:', '');
       
       if (CONFIG.server.env !== 'PROD') {
         log.error(NAMESPACE, `Rate limit exceeded for ${clientType} ${clientIdentifier} on ${method} ${path}`);

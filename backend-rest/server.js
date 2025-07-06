@@ -26,6 +26,7 @@ app.use(
 );  
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(rateLimitMiddleware);
 
 app.use((req, res, next) => {
   log.info(NAMESPACE, `METHOD: [${req.method}] - URL: [${req.url}] - IP: [${req.socket.remoteAddress}]`);
@@ -36,9 +37,6 @@ app.use((req, res, next) => {
 
   next();
 });
-
-// Apply rate limiting to all API routes
-app.use('/api', rateLimitMiddleware);
 
 // API Routes
 app.use('/api/users', userRoutes);
