@@ -1,7 +1,7 @@
 import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
-import { isProjectOwner, isProjectMember } from '../utils/permissions.js';
+import { isAdmin } from '../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'STATUS-SERVICE' : 'rest/services/statuses.service.js';
 
@@ -111,6 +111,8 @@ const getTasksByStatus = async (statusId, user) => {
     });
 
     if (!tasks.length) return [];
+
+    if (isAdmin(user)) return tasks;
 
     // For regular users, filter tasks based on project access (admin check is handled by middleware)
     const projectIds = [...new Set(tasks.map(task => task.project_id))];
