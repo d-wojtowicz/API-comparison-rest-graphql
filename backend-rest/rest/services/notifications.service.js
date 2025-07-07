@@ -1,9 +1,9 @@
-// TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
-
 import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
 import { isNotificationOwner, isSuperAdmin } from '../utils/permissions.js';
+import { publishEvent } from '../../services/websocket.service.js';
+import { CONSTANTS } from '../../config/constants.js';
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'NOTIFICATION-SERVICE' : 'rest/services/notifications.service.js';
 
 const getMyNotifications = async (user) => {
@@ -78,7 +78,13 @@ const createNotification = async (notificationData) => {
       }
     });
 
-    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
+    // Publish notification creation event via WebSocket
+    const channel = CONSTANTS.SUBSCRIPTION_CHANNEL({ 
+      CHANNEL: CONSTANTS.NOTIFICATIONS.CREATED, 
+      USER_ID: notification.user_id 
+    });
+    
+    publishEvent(channel, { notificationCreated: notification }, notification.user_id);
 
     return notification;
   } catch (error) {
@@ -111,7 +117,13 @@ const updateNotification = async (id, notificationData, user) => {
       data: { is_read }
     });
 
-    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
+    // Publish notification update event via WebSocket
+    const channel = CONSTANTS.SUBSCRIPTION_CHANNEL({ 
+      CHANNEL: CONSTANTS.NOTIFICATIONS.UPDATED, 
+      USER_ID: updatedNotification.user_id 
+    });
+    
+    publishEvent(channel, { notificationUpdated: updatedNotification }, updatedNotification.user_id);
 
     return updatedNotification;
   } catch (error) {

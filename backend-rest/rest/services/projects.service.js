@@ -2,6 +2,8 @@ import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
 import { isProjectOwner, isProjectMember, isAdmin } from '../utils/permissions.js';
+import { notificationService } from '../../services/notification.service.js';
+import { CONSTANTS } from '../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'PROJECT-SERVICE' : 'rest/services/projects.service.js';
 
@@ -155,7 +157,12 @@ const updateProject = async (id, projectData, user) => {
       }
     });
 
-    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
+    // Notify all project members about the update
+    await notificationService.notifyProjectMembers(
+      id,
+      CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.UPDATED,
+      { projectName: updatedProject.project_name }
+    );
 
     return updatedProject;
   } catch (error) {
@@ -191,7 +198,13 @@ const deleteProject = async (id, user) => {
       where: { project_id: Number(id) }
     });
 
-    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
+    // Notify all project members about deletion using the already fetched project data
+    const memberIds = project.project_members.map(member => member.user_id);
+    await notificationService.createNotifications(
+      memberIds,
+      CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.DELETED,
+      { projectName: project.project_name }
+    );
     
     return true;
   } catch (error) {
@@ -250,7 +263,12 @@ const addProjectMember = async (projectId, memberUserId, role, user) => {
       }
     });
 
-    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
+    // Create notification for the new member using the already fetched project data
+    await notificationService.createNotification(
+      memberUserId,
+      CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.ADDED_AS_MEMBER,
+      { projectName: project.project_name }
+    );
 
     return newMember;
   } catch (error) {
@@ -305,7 +323,12 @@ const removeProjectMember = async (projectId, memberUserId, user) => {
       }
     });
 
-    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
+    // Create notification for the removed member using the already fetched project data
+    await notificationService.createNotification(
+      Number(memberUserId),
+      CONSTANTS.NOTIFICATIONS.TYPES.PROJECT.REMOVED_AS_MEMBER,
+      { projectName: project.project_name }
+    );
 
     return true;
   } catch (error) {

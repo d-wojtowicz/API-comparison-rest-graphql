@@ -2,6 +2,8 @@ import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
 import { isAdmin, hasTaskAccess } from '../utils/permissions.js';
+import { notificationService } from '../../services/notification.service.js';
+import { CONSTANTS } from '../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'ATTACHMENT-SERVICE' : 'rest/services/attachments.service.js';
 
@@ -49,17 +51,36 @@ const createAttachment = async (attachmentData, user) => {
       throw new Error('Not authorized to create attachments for this task');
     }
 
-    const attachment = await prisma.task_attachments.create({
-      data: {
-        task_id: Number(task_id),
-        file_path
+    return await prisma.$transaction(async (tx) => {
+      const attachment = await tx.task_attachments.create({
+        data: {
+          task_id: Number(task_id),
+          file_path
+        }
+      });
+
+      const [taskDetails, uploader] = await Promise.all([
+        prisma.tasks.findUnique({
+          where: { task_id: Number(task_id) }
+        }),
+        prisma.users.findUnique({
+          where: { user_id: user.userId }
+        })
+      ]);
+
+      if (taskDetails.assignee_id && taskDetails.assignee_id !== user.userId) {
+        await notificationService.createNotification(
+          taskDetails.assignee_id,
+          CONSTANTS.NOTIFICATIONS.TYPES.TASK.ATTACHMENT_ADDED,
+          {
+            userName: uploader.username,
+            taskName: taskDetails.task_name
+          }
+        );
       }
+
+      return attachment;
     });
-
-    // TODO: Add subscription-similar mechanism for notifications (like pubsub in graphql)
-    // TODO: Send notification to task assignee
-
-    return attachment;
   } catch (error) {
     log.error(NAMESPACE, `createAttachment: ${error.message}`);
     throw error;

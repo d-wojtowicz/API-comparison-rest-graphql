@@ -5,6 +5,10 @@ const STATUS_MESSAGES = {
 
 // Notification section
 const NOTIFICATIONS = {
+  // Subscription channels
+  CREATED: 'NOTIFICATION_CREATED',
+  UPDATED: 'NOTIFICATION_UPDATED',
+
   // Notification types
   TYPES: {
     PROJECT: {
@@ -45,7 +49,7 @@ const NOTIFICATIONS = {
     }
   }
 };
-
+const SUBSCRIPTION_CHANNEL = ({ CHANNEL, USER_ID }) => `${CHANNEL}-${USER_ID}`;
 
 // Rate limit section
 const RATE_LIMITS = {
@@ -120,6 +124,7 @@ export const CONSTANTS = {
   STATUS_MESSAGES,
   // Notification section
   NOTIFICATIONS,
+  SUBSCRIPTION_CHANNEL,
   // Rate limiting section
   RATE_LIMITS
 };
