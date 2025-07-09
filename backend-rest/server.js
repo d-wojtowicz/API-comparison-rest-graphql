@@ -1,4 +1,6 @@
 import express from 'express';
+import { createServer } from 'http';
+import { WebSocketServer } from 'ws';
 
 import cors from 'cors';
 
@@ -12,10 +14,21 @@ import projectRoutes from './rest/routes/projects.routes.js';
 import notificationRoutes from './rest/routes/notifications.routes.js';
 import commentRoutes from './rest/routes/comments.routes.js';
 import attachmentRoutes from './rest/routes/attachments.routes.js';
+import { setupWebSocketServer } from './services/websocket.service.js';
 
 const NAMESPACE = CONFIG.server.env == 'PROD' ? 'SERVER' : 'server.js';
 
 const app = express();
+const httpServer = createServer(app);
+
+// Initialize WebSocket server for REST API subscriptions
+const wsServer = new WebSocketServer({
+  server: httpServer,
+  path: '/rest',
+});
+
+// Set up WebSocket server with authentication and event handling
+setupWebSocketServer(wsServer);
 
 app.use(
   cors({
@@ -47,6 +60,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/attachments', attachmentRoutes);
 
-app.listen(CONFIG.server.port, CONFIG.server.host, () => {
+httpServer.listen(CONFIG.server.port, CONFIG.server.host, () => {
   log.info(NAMESPACE, `Server is running at http://${CONFIG.server.host}:${CONFIG.server.port}`);
+  log.info(NAMESPACE, `WebSocket server is running at ws://${CONFIG.server.host}:${CONFIG.server.port}/rest`);
 });

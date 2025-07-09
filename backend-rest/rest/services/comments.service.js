@@ -2,6 +2,8 @@ import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
 import { hasTaskAccess, isSuperAdmin, isCommentAuthor, isAdmin } from '../utils/permissions.js';
+import { notificationService } from '../../services/notification.service.js';
+import { CONSTANTS } from '../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'COMMENT-SERVICE' : 'rest/services/comments.service.js';
 
@@ -45,8 +47,27 @@ const createComment = async (commentData, user) => {
       }
     });
 
-    // TODO: Add subscription-similar mechanism for comments (like pubsub in graphql)
-    // TODO: Notify the task assignee about the new comment
+    // Get task and user details for notification
+    const [taskDetails, commenter] = await Promise.all([
+      prisma.tasks.findUnique({
+        where: { task_id: Number(task_id) }
+      }),
+      prisma.users.findUnique({
+        where: { user_id: user.userId }
+      })
+    ]);
+
+    // Notify task assignee about the new comment
+    if (taskDetails.assignee_id && taskDetails.assignee_id !== user.userId) {
+      await notificationService.createNotification(
+        taskDetails.assignee_id,
+        CONSTANTS.NOTIFICATIONS.TYPES.TASK.COMMENT_ADDED,
+        {
+          userName: commenter.username,
+          taskName: taskDetails.task_name
+        }
+      );
+    }
 
     return comment;
   } catch (error) {

@@ -2,6 +2,8 @@ import CONFIG from '../../config/config.js';
 import log from '../../config/logging.js';
 import prisma from '../../db/client.js';
 import { isProjectOwner, isProjectMember, hasTaskAccess, isSelf, isAdmin } from '../utils/permissions.js';
+import { notificationService } from '../../services/notification.service.js';
+import { CONSTANTS } from '../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'TASK-SERVICE' : 'rest/services/tasks.service.js';
 
@@ -53,14 +55,34 @@ const createTask = async (taskData, user) => {
       }
     }
 
-    return await prisma.tasks.create({
-      data: {
-        ...otherFields,
-        project_id: Number(project_id),
-        status_id: Number(status_id),
-        assignee_id: assignee_id ? Number(assignee_id) : null,
-        due_date: otherFields.due_date ? new Date(otherFields.due_date) : null
+    return await prisma.$transaction(async (tx) => {
+      const task = await tx.tasks.create({
+        data: {
+          ...otherFields,
+          project_id: Number(project_id),
+          status_id: Number(status_id),
+          assignee_id: assignee_id ? Number(assignee_id) : null,
+          due_date: otherFields.due_date ? new Date(otherFields.due_date) : null
+        }
+      });
+
+      // If task is assigned, notify the assignee
+      if (assignee_id) {
+        const project = await prisma.projects.findUnique({
+          where: { project_id: Number(project_id) }
+        });
+        
+        await notificationService.createNotification(
+          assignee_id,
+          CONSTANTS.NOTIFICATIONS.TYPES.TASK.ASSIGNED,
+          {
+            taskName: task.task_name,
+            projectName: project.project_name
+          }
+        );
       }
+
+      return task;
     });
   } catch (error) {
     log.error(NAMESPACE, `createTask: ${error.message}`);
@@ -98,16 +120,69 @@ const updateTask = async (id, taskData, user) => {
       }
     }
 
-    return await prisma.tasks.update({
-      where: { task_id: Number(id) },
-      data: {
-        ...otherFields,
-        project_id: project_id ? Number(project_id) : undefined,
-        status_id: status_id ? Number(status_id) : undefined,
-        assignee_id: assignee_id ? Number(assignee_id) : null,
-        due_date: otherFields.due_date ? new Date(otherFields.due_date) : undefined,
-        updated_at: new Date()
+    return await prisma.$transaction(async (tx) => {
+      const updatedTask = await tx.tasks.update({
+        where: { task_id: Number(id) },
+        data: {
+          ...otherFields,
+          status_id: status_id ? Number(status_id) : undefined,
+          assignee_id: assignee_id ? Number(assignee_id) : null,
+          updated_at: new Date()
+        }
+      });
+
+      // Handle notifications for different types of updates
+      if (status_id && status_id !== task.status_id) {
+        const status = await prisma.task_statuses.findUnique({
+          where: { status_id: Number(status_id) }
+        });
+        await notificationService.notifyTaskAssignee(id, CONSTANTS.NOTIFICATIONS.TYPES.TASK.STATUS_CHANGED, {
+          taskName: task.task_name,
+          status: status.status_name
+        });
       }
+
+      if (taskData.priority !== undefined && taskData.priority !== task.priority) {
+        await notificationService.notifyTaskAssignee(id, CONSTANTS.NOTIFICATIONS.TYPES.TASK.PRIORITY_CHANGED, {
+          taskName: task.task_name,
+          priority: taskData.priority
+        });
+      }
+
+      if (otherFields.due_date && otherFields.due_date !== task.due_date) {
+        await notificationService.notifyTaskAssignee(id, CONSTANTS.NOTIFICATIONS.TYPES.TASK.DUE_DATE_CHANGED, {
+          taskName: task.task_name,
+          dueDate: new Date(otherFields.due_date).toLocaleDateString()
+        });
+      }
+
+      if (assignee_id !== undefined && assignee_id !== task.assignee_id) {
+        const project = await prisma.projects.findUnique({
+          where: { project_id: task.project_id }
+        });
+        if (assignee_id) {
+          await notificationService.createNotification(
+            assignee_id,
+            CONSTANTS.NOTIFICATIONS.TYPES.TASK.ASSIGNED,
+            {
+              taskName: task.task_name,
+              projectName: project.project_name
+            }
+          );
+        }
+        if (task.assignee_id) {
+          await notificationService.createNotification(
+            task.assignee_id,
+            CONSTANTS.NOTIFICATIONS.TYPES.TASK.UNASSIGNED,
+            {
+              taskName: task.task_name,
+              projectName: project.project_name
+            }
+          );
+        }
+      }
+
+      return updatedTask;
     });
   } catch (error) {
     log.error(NAMESPACE, `updateTask: ${error.message}`);
@@ -131,6 +206,21 @@ const deleteTask = async (id, user) => {
     if (!isOwner && !isAdmin(user)) {
       log.error(NAMESPACE, `deleteTask: User not authorized to delete this task`);
       throw new Error('Not authorized to delete this task');
+    }
+
+    // Notify task assignee about deletion
+    if (task.assignee_id) {
+      const project = await prisma.projects.findUnique({
+        where: { project_id: task.project_id }
+      });
+      await notificationService.createNotification(
+        task.assignee_id,
+        CONSTANTS.NOTIFICATIONS.TYPES.TASK.DELETED,
+        {
+          taskName: task.task_name,
+          projectName: project.project_name
+        }
+      );
     }
 
     await prisma.tasks.delete({
@@ -172,13 +262,41 @@ const assignTask = async (id, assigneeId, user) => {
       }
     }
 
-    return await prisma.tasks.update({
+    const updatedTask = await prisma.tasks.update({
       where: { task_id: Number(id) },
       data: {
         assignee_id: assigneeId ? Number(assigneeId) : null,
         updated_at: new Date()
       }
     });
+
+    const project = await prisma.projects.findUnique({
+      where: { project_id: task.project_id }
+    });
+
+    if (assigneeId && assigneeId !== task.assignee_id) {
+      await notificationService.createNotification(
+        assigneeId,
+        CONSTANTS.NOTIFICATIONS.TYPES.TASK.ASSIGNED,
+        {
+          taskName: task.task_name,
+          projectName: project.project_name
+        }
+      );
+    }
+
+    if (task.assignee_id && assigneeId !== task.assignee_id) {
+      await notificationService.createNotification(
+        task.assignee_id,
+        CONSTANTS.NOTIFICATIONS.TYPES.TASK.UNASSIGNED,
+        {
+          taskName: task.task_name,
+          projectName: project.project_name
+        }
+      );
+    }
+
+    return updatedTask;
   } catch (error) {
     log.error(NAMESPACE, `assignTask: ${error.message}`);
     throw error;
