@@ -6,10 +6,10 @@ import { CONSTANTS } from '../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'WEBSOCKET-TEST' : 'utils/dev-utils/websocket-test.js';
 
-async function testWebSocketConnection() {
+async function testWebSocketConnection(userId) {
   try {
-    // 1. Generate token for superadmin (user_id = 1)
-    const token = await generateAuthToken(1);
+    // 1. Generate token for user
+    const token = await generateAuthToken(userId);
     if (!token) {
       log.error(NAMESPACE, 'Failed to generate authentication token');
       return;
@@ -27,7 +27,7 @@ async function testWebSocketConnection() {
       // Subscribe to notification creation events
       const creationChannel = CONSTANTS.SUBSCRIPTION_CHANNEL({ 
         CHANNEL: CONSTANTS.NOTIFICATIONS.CREATED, 
-        USER_ID: 1 
+        USER_ID: userId 
       });
       
       ws.send(JSON.stringify({
@@ -38,7 +38,7 @@ async function testWebSocketConnection() {
       // Subscribe to notification update events
       const updateChannel = CONSTANTS.SUBSCRIPTION_CHANNEL({ 
         CHANNEL: CONSTANTS.NOTIFICATIONS.UPDATED, 
-        USER_ID: 1 
+        USER_ID: userId 
       });
       
       ws.send(JSON.stringify({
@@ -86,7 +86,7 @@ async function testWebSocketConnection() {
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
-            user_id: "1", // Send to superadmin
+            user_id: userId,
             message: "Test notification from websocket test"
           })
         });
@@ -115,6 +115,6 @@ async function testWebSocketConnection() {
 }
 
 // Run the test
-testWebSocketConnection();
+testWebSocketConnection(8);
 
 export { testWebSocketConnection }; 
