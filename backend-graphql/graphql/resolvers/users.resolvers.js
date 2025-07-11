@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { signToken, verifyToken } from '../../utils/jwt.js';
 import log from '../../config/logging.js';
 import CONFIG from '../../config/config.js';
+import { parsePaginationInput, buildPaginationQuery, createPaginatedResponse } from '../../utils/pagination.js';
 
 const NAMESPACE = CONFIG.server.env == 'PROD' ? 'USER-RESOLVER' : 'graphql/resolvers/users.resolvers.js';
 
@@ -35,7 +36,7 @@ export const userResolvers = {
 
       return targetUser;
     },
-    users: async (_, __, { user }) => {
+    users: async (_, { input }, { user }) => {
       if (!user) {
         log.error(NAMESPACE, 'users: User not authenticated');
         throw new Error('Not authenticated');
@@ -46,7 +47,14 @@ export const userResolvers = {
         throw new Error('Not authorized');
       }
 
-      return prisma.users.findMany();
+      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
+      const paginationQuery = buildPaginationQuery(pagination, 'user_id');
+      
+      const users = await prisma.users.findMany({
+        ...paginationQuery
+      });
+      
+      return createPaginatedResponse(users, pagination, 'user_id');
     },
   },
   Mutation: {
@@ -222,50 +230,135 @@ export const userResolvers = {
     },
   },
   User: {
-    memberOf: async (parent, _, { user, loaders }) => {
-      if (!user) return [];
+    memberOf: async (parent, { input }, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'User.memberOf: User not authenticated');
+        throw new Error('Not authenticated');
+      }
       
       // Users can only see their own project memberships unless they're admin
       if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
-        return [];
+        log.error(NAMESPACE, 'User.memberOf: Not authorized to view these project memberships');
+        throw new Error('Not authorized');
       }
-      return loaders.projectMembersByUserLoader.load(parent.user_id);
+
+      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
+      const paginationQuery = buildPaginationQuery(pagination, 'project_id');
+      
+      const memberships = await prisma.project_members.findMany({
+        where: { user_id: parent.user_id },
+        ...paginationQuery
+      });
+      
+      return createPaginatedResponse(memberships, pagination, 'project_id');
     },
-    projects: async (parent, _, { user, loaders }) => {
-      if (!user) return [];
+    projects: async (parent, { input }, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'User.projects: User not authenticated');
+        throw new Error('Not authenticated');
+      }
       
       // Users can only see their own projects unless they're admin
       if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
-        return [];
+        log.error(NAMESPACE, 'User.projects: Not authorized to view these projects');
+        throw new Error('Not authorized');
       }
-      return loaders.projectsByUserLoader.load(parent.user_id);
+
+      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
+      const paginationQuery = buildPaginationQuery(pagination, 'project_id');
+      
+      // Get projects where user is owner or member
+      const ownedProjects = await prisma.projects.findMany({
+        where: { owner_id: parent.user_id },
+        ...paginationQuery
+      });
+
+      const memberProjects = await prisma.projects.findMany({
+        where: {
+          project_members: {
+            some: {
+              user_id: parent.user_id
+            }
+          }
+        },
+        ...paginationQuery
+      });
+
+      // Combine and remove duplicates
+      const allProjects = [...ownedProjects, ...memberProjects];
+      const uniqueProjects = allProjects.filter((project, index, self) => 
+        index === self.findIndex(p => p.project_id === project.project_id)
+      );
+
+      return createPaginatedResponse(uniqueProjects, pagination, 'project_id');
     },
-    notifications: async (parent, _, { user, loaders }) => {
-      if (!user) return [];
+    notifications: async (parent, { input }, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'User.notifications: User not authenticated');
+        throw new Error('Not authenticated');
+      }
       
       // Users can only see their own notifications unless they're admin
       if (!isSuperAdmin(user) && !isSelf(user, parent.user_id)) {
-        return [];
+        log.error(NAMESPACE, 'User.notifications: Not authorized to view these notifications');
+        throw new Error('Not authorized');
       }
-      return loaders.notificationsByUserLoader.load(parent.user_id);
+
+      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
+      const paginationQuery = buildPaginationQuery(pagination, 'notification_id');
+      
+      const notifications = await prisma.notifications.findMany({
+        where: { user_id: parent.user_id },
+        orderBy: { created_at: 'desc' },
+        ...paginationQuery
+      });
+      
+      return createPaginatedResponse(notifications, pagination, 'notification_id');
     },
-    tasks: async (parent, _, { user, loaders }) => {
-      if (!user) return [];
+    tasks: async (parent, { input }, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'User.tasks: User not authenticated');
+        throw new Error('Not authenticated');
+      }
       
       // Users can only see their own tasks unless they're admin
       if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
-        return [];
+        log.error(NAMESPACE, 'User.tasks: Not authorized to view these tasks');
+        throw new Error('Not authorized');
       }
-      return loaders.tasksByAssigneeLoader.load(parent.user_id);
+
+      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
+      const paginationQuery = buildPaginationQuery(pagination, 'task_id');
+      
+      const tasks = await prisma.tasks.findMany({
+        where: { assignee_id: parent.user_id },
+        ...paginationQuery
+      });
+      
+      return createPaginatedResponse(tasks, pagination, 'task_id');
     },
-    comments: async (parent, _, { user, loaders }) => {
-      if (!user) return [];
+    comments: async (parent, { input }, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'User.comments: User not authenticated');
+        throw new Error('Not authenticated');
+      }
       
       // Users can only see their own comments unless they're admin
       if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
-        return [];
+        log.error(NAMESPACE, 'User.comments: Not authorized to view these comments');
+        throw new Error('Not authorized');
       }
-      return loaders.taskCommentsByUserLoader.load(parent.user_id);
+
+      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
+      const paginationQuery = buildPaginationQuery(pagination, 'comment_id');
+      
+      const comments = await prisma.task_comments.findMany({
+        where: { user_id: parent.user_id },
+        orderBy: { created_at: 'desc' },
+        ...paginationQuery
+      });
+      
+      return createPaginatedResponse(comments, pagination, 'comment_id');
     }
   }
 };

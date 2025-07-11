@@ -15,6 +15,18 @@ export const baseTypeDefs = gql`
 
   scalar DateTime
 
+  # Pagination types
+  type PageInfo {
+    hasNextPage: Boolean!
+    nextCursor: String
+    limit: Int!
+  }
+
+  input PaginationInput {
+    cursor: String
+    limit: Int
+  }
+
   # Custom directives
   directive @auth(requires: Role = USER) on FIELD_DEFINITION
   directive @rateLimit(max: Int!, window: Int!) on FIELD_DEFINITION

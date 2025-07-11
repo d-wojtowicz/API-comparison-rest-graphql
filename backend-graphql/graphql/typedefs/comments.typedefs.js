@@ -13,6 +13,12 @@ export const commentTypeDefs = gql`
     user: User! @defer
   }
 
+  # Paginated task comments response
+  type TaskCommentsConnection {
+    data: [TaskComment!]!
+    pagination: PageInfo!
+  }
+
   input CreateTaskCommentInput {
     task_id: ID!
     comment_text: String!

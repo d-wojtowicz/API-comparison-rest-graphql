@@ -17,8 +17,14 @@ export const taskTypeDefs = gql`
     status: TaskStatus!
     project: Project! @defer
     assignee: User @defer
-    comments: [TaskComment!]! @defer
-    attachments: [TaskAttachment!]! @defer
+    comments(input: PaginationInput): TaskCommentsConnection! @defer
+    attachments(input: PaginationInput): TaskAttachmentsConnection! @defer
+  }
+
+  # Paginated tasks response
+  type TasksConnection {
+    data: [Task!]!
+    pagination: PageInfo!
   }
 
   input CreateTaskInput {
@@ -42,8 +48,10 @@ export const taskTypeDefs = gql`
 
   extend type Query {
     task(id: ID!): Task @auth
-    tasksByProject(projectId: ID!): [Task!]! @auth
-    tasksByAssignee(assigneeId: ID!): [Task!]! @auth
+    tasksByProject(projectId: ID!, input: PaginationInput): TasksConnection! @auth
+    tasksByProjectList(projectId: ID!): [Task!]! @auth
+    tasksByAssignee(assigneeId: ID!, input: PaginationInput): TasksConnection! @auth
+    tasksByAssigneeList(assigneeId: ID!): [Task!]! @auth
     tasksByStatus(statusId: ID!): [Task!]! @auth
   }
 

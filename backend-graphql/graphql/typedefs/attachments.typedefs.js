@@ -11,6 +11,12 @@ export const attachmentTypeDefs = gql`
     task: Task! @defer
   }
 
+  # Paginated task attachments response
+  type TaskAttachmentsConnection {
+    data: [TaskAttachment!]!
+    pagination: PageInfo!
+  }
+
   input CreateTaskAttachmentInput {
     task_id: ID!
     file_path: String!
