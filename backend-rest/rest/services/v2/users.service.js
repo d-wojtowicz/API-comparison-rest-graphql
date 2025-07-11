@@ -13,8 +13,6 @@ const getMe = async (userId) => {
       select: {
         user_id: true,
         username: true,
-        first_name: true,
-        last_name: true,
         email: true,
         password_hash: true,
         created_at: true,
@@ -35,8 +33,6 @@ const getUserById = async (id, requestingUser) => {
       select: {
         user_id: true,
         username: true,
-        first_name: true,
-        last_name: true,
         email: true,
         password_hash: true,
         created_at: true,
@@ -59,14 +55,12 @@ const getAllUsers = async (requestingUser) => {
       select: {
         user_id: true,
         username: true,
-        first_name: true,
-        last_name: true,
         email: true,
         password_hash: true,
         created_at: true,
         updated_at: true,
         role: true,
-      }
+      },
     });
     
     return users.map(user => filterUserFields(user, requestingUser));
@@ -101,8 +95,6 @@ const register = async (userData) => {
       select: {
         user_id: true,
         username: true,
-        first_name: true,
-        last_name: true,
         email: true,
         password_hash: true,
         created_at: true,
@@ -132,8 +124,6 @@ const login = async (loginData) => {
       select: {
         user_id: true,
         username: true,
-        first_name: true,
-        last_name: true,
         email: true,
         password_hash: true,
         created_at: true,
@@ -172,43 +162,6 @@ const login = async (loginData) => {
   }
 };
 
-const changePassword = async (userId, passwordData) => {
-  try {
-    const { oldPassword, newPassword } = passwordData;
-    
-    const dbUser = await prisma.users.findUnique({
-      where: { user_id: userId }
-    });
-
-    if (!dbUser) {
-      log.error(NAMESPACE, 'changePassword: User not found in database');
-      throw new Error('User not found');
-    }
-
-    const valid = await bcrypt.compare(oldPassword, dbUser.password_hash);
-    if (!valid) {
-      log.error(NAMESPACE, 'changePassword: Invalid current password');
-      throw new Error('Invalid current password');
-    }
-
-    const password_hash = await bcrypt.hash(newPassword, 10);
-    
-    await prisma.users.update({
-      where: { user_id: userId },
-      data: { 
-        password_hash,
-        updated_at: new Date()
-      }
-    });
-
-    log.info(NAMESPACE, 'changePassword: Password updated successfully');
-    return true;
-  } catch (error) {
-    log.error(NAMESPACE, `changePassword: ${error.message}`);
-    throw error;
-  }
-};
-
 const updateUserRole = async (id, role, currentUser) => {
   try {
     const targetUser = await prisma.users.findUnique({
@@ -241,8 +194,6 @@ const updateUserRole = async (id, role, currentUser) => {
       select: {
         user_id: true,
         username: true,
-        first_name: true,
-        last_name: true,
         email: true,
         password_hash: true,
         created_at: true,
@@ -263,65 +214,11 @@ const updateUserRole = async (id, role, currentUser) => {
   }
 };
 
-const deleteUser = async (id, currentUser) => {
-  try {
-    const targetUser = await prisma.users.findUnique({
-      where: { user_id: Number(id) }
-    });
-
-    if (!targetUser) {
-      log.error(NAMESPACE, 'deleteUser: User not found in database');
-      throw new Error('User not found');
-    }
-
-    // Prevent deleting admin users
-    if (targetUser.role === 'admin' || targetUser.role === 'superadmin') {
-      log.error(NAMESPACE, 'deleteUser: Cannot delete admin users');
-      throw new Error('Cannot delete admin users');
-    }
-
-    if (currentUser.userId === targetUser.user_id) {
-      log.error(NAMESPACE, 'deleteUser: Cannot delete self');
-      throw new Error('Cannot delete self');
-    }
-
-    await prisma.users.delete({
-      where: { user_id: Number(id) }
-    });
-
-    return true;
-  } catch (error) {
-    log.error(NAMESPACE, `deleteUser: ${error.message}`);
-    throw error;
-  }
-};
-
-// Dependencies
-const getTasksByAssignee = async (assigneeId, user) => {
-  try {
-    // Users can only view their own assigned tasks unless they're admin (admin check is handled by middleware)
-    if (!isSelf(user, Number(assigneeId)) && !isAdmin(user)) {
-      throw new Error('Not authorized to view these tasks');
-    }
-
-    return await prisma.tasks.findMany({
-      where: { assignee_id: Number(assigneeId) }
-    });
-  } catch (error) {
-    log.error(NAMESPACE, `getTasksByAssignee: ${error.message}`);
-    throw error;
-  }
-};
-
 export default {
   getMe,
   getUserById,
   getAllUsers,
   register,
   login,
-  changePassword,
   updateUserRole,
-  deleteUser,
-  // Dependencies
-  getTasksByAssignee
 }; 

@@ -1,29 +1,30 @@
 import express from 'express';
-import usersController from '../controllers/users.controller.js';
-import { verifyTokenMiddleware, requireAdmin } from '../../middleware/auth.middleware.js';
+import usersController from '../../controllers/v1/users.controller.js';
+import { verifyTokenMiddleware, requireAdmin } from '../../../middleware/auth.middleware.js';
+import { endpointDeprecationMiddleware } from '../../../middleware/deprecation.middleware.js';
 
 const router = express.Router();
 
 // Get current user
-router.get('/me', verifyTokenMiddleware, usersController.getMe);
+router.get('/me', verifyTokenMiddleware, endpointDeprecationMiddleware('2025-12-31', '/api/v2/users/me'), usersController.getMe);
 
 // Get user by ID
-router.get('/:id', verifyTokenMiddleware, usersController.getUserById);
+router.get('/:id', verifyTokenMiddleware, endpointDeprecationMiddleware('2025-12-31', '/api/v2/users/:id'), usersController.getUserById);
 
 // Get all users (admin only)
-router.get('/', verifyTokenMiddleware, requireAdmin, usersController.getAllUsers);
+router.get('/', verifyTokenMiddleware, requireAdmin, endpointDeprecationMiddleware('2025-12-31', '/api/v2/users'), usersController.getAllUsers);
 
 // Register new user
-router.post('/register', usersController.register);
+router.post('/register', endpointDeprecationMiddleware('2025-12-31', '/api/v2/users/register'), usersController.register);
 
 // Login user
-router.post('/login', usersController.login);
+router.post('/login', endpointDeprecationMiddleware('2025-12-31', '/api/v2/users/login'), usersController.login);
 
 // Change password
 router.put('/change-password', verifyTokenMiddleware, usersController.changePassword);
 
 // Update user role (admin only)
-router.put('/:id/role', verifyTokenMiddleware, requireAdmin, usersController.updateUserRole);
+router.put('/:id/role', verifyTokenMiddleware, requireAdmin, endpointDeprecationMiddleware('2025-12-31', '/api/v2/users/:id/role'), usersController.updateUserRole);
 
 // Delete user (admin only)
 router.delete('/:id', verifyTokenMiddleware, requireAdmin, usersController.deleteUser);

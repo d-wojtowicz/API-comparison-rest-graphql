@@ -7,7 +7,8 @@ import cors from 'cors';
 import CONFIG from './config/config.js';
 import log from './config/logging.js';
 import { rateLimitMiddleware } from './middleware/rateLimit.middleware.js';
-import userRoutes from './rest/routes/v1/users.routes.js';
+import userRoutesV1 from './rest/routes/v1/users.routes.js';
+import userRoutesV2 from './rest/routes/v2/users.routes.js';
 import statusRoutes from './rest/routes/v1/statuses.routes.js';
 import taskRoutes from './rest/routes/v1/tasks.routes.js';
 import projectRoutes from './rest/routes/v1/projects.routes.js';
@@ -52,7 +53,8 @@ app.use((req, res, next) => {
 });
 
 // API Routes
-app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/users', userRoutesV1);
+app.use('/api/v2/users', userRoutesV2);
 app.use('/api/v1/statuses', statusRoutes);
 app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/projects', projectRoutes);
