@@ -1,7 +1,7 @@
-import log from '../../config/logging.js';
-import taskService from '../services/tasks.service.js';
-import CONFIG from '../../config/config.js';
-import { CONSTANTS } from '../../config/constants.js';
+import log from '../../../config/logging.js';
+import taskService from '../../services/v1/tasks.service.js';
+import CONFIG from '../../../config/config.js';
+import { CONSTANTS } from '../../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'TASK-CONTROLLER' : 'rest/controllers/tasks.controller.js';
 

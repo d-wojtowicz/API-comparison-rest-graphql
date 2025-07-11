@@ -1,7 +1,7 @@
-import log from '../../config/logging.js';
-import projectService from '../services/projects.service.js';
-import CONFIG from '../../config/config.js';
-import { CONSTANTS } from '../../config/constants.js';
+import log from '../../../config/logging.js';
+import projectService from '../../services/v1/projects.service.js';
+import CONFIG from '../../../config/config.js';
+import { CONSTANTS } from '../../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'PROJECT-CONTROLLER' : 'rest/controllers/projects.controller.js';
 

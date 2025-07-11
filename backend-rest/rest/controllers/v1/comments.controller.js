@@ -1,7 +1,7 @@
-import log from '../../config/logging.js';
-import commentService from '../services/comments.service.js';
-import CONFIG from '../../config/config.js';
-import { CONSTANTS } from '../../config/constants.js';
+import log from '../../../config/logging.js';
+import commentService from '../../services/v1/comments.service.js';
+import CONFIG from '../../../config/config.js';
+import { CONSTANTS } from '../../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'COMMENT-CONTROLLER' : 'rest/controllers/comments.controller.js';
 

@@ -1,6 +1,6 @@
 import express from 'express';
-import tasksController from '../controllers/tasks.controller.js';
-import { verifyTokenMiddleware, requireAdmin } from '../../middleware/auth.middleware.js';
+import tasksController from '../../controllers/v1/tasks.controller.js';
+import { verifyTokenMiddleware, requireAdmin } from '../../../middleware/auth.middleware.js';
 
 const router = express.Router();
 

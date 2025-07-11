@@ -7,13 +7,13 @@ import cors from 'cors';
 import CONFIG from './config/config.js';
 import log from './config/logging.js';
 import { rateLimitMiddleware } from './middleware/rateLimit.middleware.js';
-import userRoutes from './rest/routes/users.routes.js';
-import statusRoutes from './rest/routes/statuses.routes.js';
-import taskRoutes from './rest/routes/tasks.routes.js';
-import projectRoutes from './rest/routes/projects.routes.js';
-import notificationRoutes from './rest/routes/notifications.routes.js';
-import commentRoutes from './rest/routes/comments.routes.js';
-import attachmentRoutes from './rest/routes/attachments.routes.js';
+import userRoutes from './rest/routes/v1/users.routes.js';
+import statusRoutes from './rest/routes/v1/statuses.routes.js';
+import taskRoutes from './rest/routes/v1/tasks.routes.js';
+import projectRoutes from './rest/routes/v1/projects.routes.js';
+import notificationRoutes from './rest/routes/v1/notifications.routes.js';
+import commentRoutes from './rest/routes/v1/comments.routes.js';
+import attachmentRoutes from './rest/routes/v1/attachments.routes.js';
 import { setupWebSocketServer } from './services/websocket.service.js';
 
 const NAMESPACE = CONFIG.server.env == 'PROD' ? 'SERVER' : 'server.js';
@@ -52,13 +52,13 @@ app.use((req, res, next) => {
 });
 
 // API Routes
-app.use('/api/users', userRoutes);
-app.use('/api/statuses', statusRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/comments', commentRoutes);
-app.use('/api/attachments', attachmentRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/statuses', statusRoutes);
+app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/v1/projects', projectRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/comments', commentRoutes);
+app.use('/api/v1/attachments', attachmentRoutes);
 
 httpServer.listen(CONFIG.server.port, CONFIG.server.host, () => {
   log.info(NAMESPACE, `Server is running at http://${CONFIG.server.host}:${CONFIG.server.port}`);

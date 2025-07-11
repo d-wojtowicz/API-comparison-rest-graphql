@@ -1,7 +1,7 @@
-import log from '../../config/logging.js';
-import attachmentService from '../services/attachments.service.js';
-import CONFIG from '../../config/config.js';
-import { CONSTANTS } from '../../config/constants.js';
+import log from '../../../config/logging.js';
+import attachmentService from '../../services/v1/attachments.service.js';
+import CONFIG from '../../../config/config.js';
+import { CONSTANTS } from '../../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'ATTACHMENT-CONTROLLER' : 'rest/controllers/attachments.controller.js';
 

@@ -1,7 +1,7 @@
-import log from '../../config/logging.js';
-import userService from '../services/users.service.js';
-import CONFIG from '../../config/config.js';
-import { CONSTANTS } from '../../config/constants.js';
+import log from '../../../config/logging.js';
+import userService from '../../services/v1/users.service.js';
+import CONFIG from '../../../config/config.js';
+import { CONSTANTS } from '../../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'USER-CONTROLLER' : 'rest/controllers/users.controller.js';
 

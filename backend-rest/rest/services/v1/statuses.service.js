@@ -1,7 +1,7 @@
-import CONFIG from '../../config/config.js';
-import log from '../../config/logging.js';
-import prisma from '../../db/client.js';
-import { isAdmin } from '../utils/permissions.js';
+import CONFIG from '../../../config/config.js';
+import log from '../../../config/logging.js';
+import prisma from '../../../db/client.js';
+import { isAdmin } from '../../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'STATUS-SERVICE' : 'rest/services/statuses.service.js';
 

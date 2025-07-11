@@ -1,9 +1,9 @@
-import CONFIG from '../../config/config.js';
-import log from '../../config/logging.js';
-import prisma from '../../db/client.js';
-import { isAdmin, hasTaskAccess } from '../utils/permissions.js';
-import { notificationService } from '../../services/notification.service.js';
-import { CONSTANTS } from '../../config/constants.js';
+import CONFIG from '../../../config/config.js';
+import log from '../../../config/logging.js';
+import prisma from '../../../db/client.js';
+import { isAdmin, hasTaskAccess } from '../../utils/permissions.js';
+import { notificationService } from '../../../services/notification.service.js';
+import { CONSTANTS } from '../../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'ATTACHMENT-SERVICE' : 'rest/services/attachments.service.js';
 

@@ -1,9 +1,9 @@
-import CONFIG from '../../config/config.js';
-import log from '../../config/logging.js';
-import prisma from '../../db/client.js';
+import CONFIG from '../../../config/config.js';
+import log from '../../../config/logging.js';
+import prisma from '../../../db/client.js';
 import bcrypt from 'bcryptjs';
-import { signToken } from '../../utils/jwt.js';
-import { isSuperAdmin, isAdmin, filterUserFields, isSelf } from '../utils/permissions.js';
+import { signToken } from '../../../utils/jwt.js';
+import { isSuperAdmin, isAdmin, filterUserFields, isSelf } from '../../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'USER-SERVICE' : 'rest/services/users.service.js';
 
