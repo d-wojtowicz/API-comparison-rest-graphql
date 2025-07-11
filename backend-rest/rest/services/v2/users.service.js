@@ -4,6 +4,7 @@ import prisma from '../../../db/client.js';
 import bcrypt from 'bcryptjs';
 import { signToken } from '../../../utils/jwt.js';
 import { isSuperAdmin, isAdmin, filterUserFields, isSelf } from '../../utils/permissions.js';
+import { buildPaginationQuery, createPaginatedResponse } from '../../../middleware/pagination.middleware.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'USER-SERVICE' : 'rest/services/users.service.js';
 
@@ -49,8 +50,10 @@ const getUserById = async (id, requestingUser) => {
   }
 };
 
-const getAllUsers = async (requestingUser) => {
+const getAllUsers = async (requestingUser, pagination) => {
   try {
+    const paginationQuery = buildPaginationQuery(pagination, 'user_id');
+    
     const users = await prisma.users.findMany({
       select: {
         user_id: true,
@@ -61,9 +64,12 @@ const getAllUsers = async (requestingUser) => {
         updated_at: true,
         role: true,
       },
+      ...paginationQuery
     });
     
-    return users.map(user => filterUserFields(user, requestingUser));
+    const filteredUsers = users.map(user => filterUserFields(user, requestingUser));
+    
+    return createPaginatedResponse(filteredUsers, pagination, 'user_id');
   } catch (error) {
     log.error(NAMESPACE, `getAllUsers: ${error.message}`);
     throw error;

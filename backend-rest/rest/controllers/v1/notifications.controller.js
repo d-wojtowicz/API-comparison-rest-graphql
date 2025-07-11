@@ -7,8 +7,8 @@ const NAMESPACE = CONFIG.server.env === 'PROD' ? 'NOTIFICATION-CONTROLLER' : 're
 
 const getMyNotifications = async (req, res) => {
   try {
-    const notifications = await notificationService.getMyNotifications(req.user);
-    res.status(200).json(notifications);
+    const paginatedNotifications = await notificationService.getMyNotifications(req.user, req.pagination);
+    res.status(200).json(paginatedNotifications);
   } catch (error) {
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }

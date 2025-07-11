@@ -31,8 +31,8 @@ const getUserById = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await userService.getAllUsers(req.user);
-    res.status(200).json(users);
+    const paginatedUsers = await userService.getAllUsers(req.user, req.pagination);
+    res.status(200).json(paginatedUsers);
   } catch (error) {
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }
@@ -113,8 +113,8 @@ const deleteUser = async (req, res) => {
 // Dependencies
 const getTasksByAssignee = async (req, res) => {
   try {
-    const tasks = await userService.getTasksByAssignee(req.params.userId, req.user);
-    res.status(200).json(tasks);
+    const paginatedTasks = await userService.getTasksByAssignee(req.params.userId, req.user, req.pagination);
+    res.status(200).json(paginatedTasks);
   } catch (error) {
     if (error.message === 'Not authorized to view these tasks') {
       return res.status(403).json({ message: error.message });
