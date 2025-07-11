@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 
@@ -40,6 +41,7 @@ app.use(
 );  
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(compression());
 app.use(rateLimitMiddleware);
 
 app.use((req, res, next) => {
