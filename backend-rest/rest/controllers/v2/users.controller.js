@@ -1,7 +1,8 @@
-import log from '../../config/logging.js';
-import userService from '../services/users.service.js';
-import CONFIG from '../../config/config.js';
-import { CONSTANTS } from '../../config/constants.js';
+import log from '../../../config/logging.js';
+import userService from '../../services/v2/users.service.js';
+import userController from '../../controllers/v1/users.controller.js';
+import CONFIG from '../../../config/config.js';
+import { CONSTANTS } from '../../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'USER-CONTROLLER' : 'rest/controllers/users.controller.js';
 
@@ -62,21 +63,6 @@ const login = async (req, res) => {
   }
 };
 
-const changePassword = async (req, res) => {
-  try {
-    await userService.changePassword(req.user.userId, req.body);
-    res.status(200).json({ message: 'Password changed successfully' });
-  } catch (error) {
-    if (error.message === 'User not found') {
-      return res.status(404).json({ message: error.message });
-    }
-    if (error.message === 'Invalid current password') {
-      return res.status(400).json({ message: error.message });
-    }
-    res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
-  }
-};
-
 const updateUserRole = async (req, res) => {
   try {
     const user = await userService.updateUserRole(req.params.id, req.body.role, req.user);
@@ -94,44 +80,12 @@ const updateUserRole = async (req, res) => {
   }
 };
 
-const deleteUser = async (req, res) => {
-  try {
-    await userService.deleteUser(req.params.id, req.user);
-    res.status(200).json({ message: 'User deleted successfully' });
-  } catch (error) {
-    if (error.message === 'User not found') {
-      return res.status(404).json({ message: error.message });
-    }
-    if (error.message === 'Cannot delete admin users' || 
-        error.message === 'Cannot delete self') {
-      return res.status(400).json({ message: error.message });
-    }
-    res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
-  }
-};
-
-// Dependencies
-const getTasksByAssignee = async (req, res) => {
-  try {
-    const tasks = await userService.getTasksByAssignee(req.params.userId, req.user);
-    res.status(200).json(tasks);
-  } catch (error) {
-    if (error.message === 'Not authorized to view these tasks') {
-      return res.status(403).json({ message: error.message });
-    }
-    res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
-  }
-};
-
 export default {
+  ...userController,
   getMe,
   getUserById,
   getAllUsers,
   register,
   login,
-  changePassword,
   updateUserRole,
-  deleteUser,
-  // Dependencies
-  getTasksByAssignee
 }; 

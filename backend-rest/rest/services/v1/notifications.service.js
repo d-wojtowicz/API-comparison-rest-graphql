@@ -1,9 +1,9 @@
-import CONFIG from '../../config/config.js';
-import log from '../../config/logging.js';
-import prisma from '../../db/client.js';
-import { isNotificationOwner, isSuperAdmin } from '../utils/permissions.js';
-import { publishEvent } from '../../services/websocket.service.js';
-import { CONSTANTS } from '../../config/constants.js';
+import CONFIG from '../../../config/config.js';
+import log from '../../../config/logging.js';
+import prisma from '../../../db/client.js';
+import { isNotificationOwner, isSuperAdmin } from '../../utils/permissions.js';
+import { publishEvent } from '../../../services/websocket.service.js';
+import { CONSTANTS } from '../../../config/constants.js';
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'NOTIFICATION-SERVICE' : 'rest/services/notifications.service.js';
 
 const getMyNotifications = async (user) => {

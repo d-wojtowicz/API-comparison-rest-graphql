@@ -1,6 +1,6 @@
 import express from 'express';
-import attachmentsController from '../controllers/attachments.controller.js';
-import { verifyTokenMiddleware } from '../../middleware/auth.middleware.js';
+import attachmentsController from '../../controllers/v1/attachments.controller.js';
+import { verifyTokenMiddleware } from '../../../middleware/auth.middleware.js';
 
 const router = express.Router();
 

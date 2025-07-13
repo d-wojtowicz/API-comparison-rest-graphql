@@ -1,7 +1,7 @@
-import log from '../../config/logging.js';
-import notificationService from '../services/notifications.service.js';
-import CONFIG from '../../config/config.js';
-import { CONSTANTS } from '../../config/constants.js';
+import log from '../../../config/logging.js';
+import notificationService from '../../services/v1/notifications.service.js';
+import CONFIG from '../../../config/config.js';
+import { CONSTANTS } from '../../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'NOTIFICATION-CONTROLLER' : 'rest/controllers/notifications.controller.js';
 

@@ -1,7 +1,7 @@
-import log from '../../config/logging.js';
-import statusService from '../services/statuses.service.js';
-import CONFIG from '../../config/config.js';
-import { CONSTANTS } from '../../config/constants.js';
+import log from '../../../config/logging.js';
+import statusService from '../../services/v1/statuses.service.js';
+import CONFIG from '../../../config/config.js';
+import { CONSTANTS } from '../../../config/constants.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'STATUS-CONTROLLER' : 'rest/controllers/statuses.controllers.js';
 

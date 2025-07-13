@@ -1,15 +1,26 @@
-import CONFIG from '../../config/config.js';
-import log from '../../config/logging.js';
-import prisma from '../../db/client.js';
+import CONFIG from '../../../config/config.js';
+import log from '../../../config/logging.js';
+import prisma from '../../../db/client.js';
 import bcrypt from 'bcryptjs';
-import { signToken } from '../../utils/jwt.js';
-import { isSuperAdmin, isAdmin, filterUserFields, isSelf } from '../utils/permissions.js';
+import { signToken } from '../../../utils/jwt.js';
+import { isSuperAdmin, isAdmin, filterUserFields, isSelf } from '../../utils/permissions.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'USER-SERVICE' : 'rest/services/users.service.js';
 
 const getMe = async (userId) => {
   try {
     return await prisma.users.findUnique({
+      select: {
+        user_id: true,
+        username: true,
+        first_name: true,
+        last_name: true,
+        email: true,
+        password_hash: true,
+        created_at: true,
+        updated_at: true,
+        role: true,
+      },
       where: { user_id: userId }
     });
   } catch (error) {
@@ -21,6 +32,17 @@ const getMe = async (userId) => {
 const getUserById = async (id, requestingUser) => {
   try {
     const user = await prisma.users.findUnique({
+      select: {
+        user_id: true,
+        username: true,
+        first_name: true,
+        last_name: true,
+        email: true,
+        password_hash: true,
+        created_at: true,
+        updated_at: true,
+        role: true,
+      },
       where: { user_id: Number(id) }
     });
     
@@ -33,7 +55,19 @@ const getUserById = async (id, requestingUser) => {
 
 const getAllUsers = async (requestingUser) => {
   try {
-    const users = await prisma.users.findMany();
+    const users = await prisma.users.findMany({
+      select: {
+        user_id: true,
+        username: true,
+        first_name: true,
+        last_name: true,
+        email: true,
+        password_hash: true,
+        created_at: true,
+        updated_at: true,
+        role: true,
+      }
+    });
     
     return users.map(user => filterUserFields(user, requestingUser));
   } catch (error) {
@@ -64,6 +98,17 @@ const register = async (userData) => {
     const password_hash = await bcrypt.hash(password, 10);
     
     const newUser = await prisma.users.create({
+      select: {
+        user_id: true,
+        username: true,
+        first_name: true,
+        last_name: true,
+        email: true,
+        password_hash: true,
+        created_at: true,
+        updated_at: true,
+        role: true,
+      },
       data: { 
         username, 
         email, 
@@ -84,6 +129,17 @@ const login = async (loginData) => {
     const { login, password } = loginData;
     
     const userCredentials = await prisma.users.findFirst({ 
+      select: {
+        user_id: true,
+        username: true,
+        first_name: true,
+        last_name: true,
+        email: true,
+        password_hash: true,
+        created_at: true,
+        updated_at: true,
+        role: true,
+      },
       where: { 
         OR: [
           // Allow login with email or username
@@ -182,6 +238,17 @@ const updateUserRole = async (id, role, currentUser) => {
     }
 
     const updatedUser = await prisma.users.update({
+      select: {
+        user_id: true,
+        username: true,
+        first_name: true,
+        last_name: true,
+        email: true,
+        password_hash: true,
+        created_at: true,
+        updated_at: true,
+        role: true,
+      },
       where: { user_id: Number(id) },
       data: { 
         role,

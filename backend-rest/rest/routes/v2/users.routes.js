@@ -1,6 +1,6 @@
 import express from 'express';
-import usersController from '../controllers/users.controller.js';
-import { verifyTokenMiddleware, requireAdmin } from '../../middleware/auth.middleware.js';
+import usersController from '../../controllers/v2/users.controller.js';
+import { verifyTokenMiddleware, requireAdmin } from '../../../middleware/auth.middleware.js';
 
 const router = express.Router();
 
