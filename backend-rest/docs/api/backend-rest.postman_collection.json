@@ -410,7 +410,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/notifications/my",
+							"raw": "{{base_url}}/api/v1/notifications/my?limit=5&cursor=0",
 							"host": [
 								"{{base_url}}"
 							],
@@ -419,6 +419,16 @@
 								"v1",
 								"notifications",
 								"my"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "cursor",
+									"value": "0"
+								}
 							]
 						}
 					},
@@ -535,7 +545,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"user_id\": 1,\r\n    \"message\": \"Test notification from POSTMAN\"\r\n}",
+							"raw": "{\r\n    \"user_id\": 8,\r\n    \"message\": \"Test notification from POSTMAN\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -772,7 +782,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/projects/",
+							"raw": "{{base_url}}/api/v1/projects/?limit=5&cursor=0",
 							"host": [
 								"{{base_url}}"
 							],
@@ -781,6 +791,16 @@
 								"v1",
 								"projects",
 								""
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "cursor",
+									"value": "0"
+								}
 							]
 						}
 					},
@@ -815,7 +835,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/projects/my",
+							"raw": "{{base_url}}/api/v1/projects/my?limit=5&cursor=0",
 							"host": [
 								"{{base_url}}"
 							],
@@ -824,6 +844,16 @@
 								"v1",
 								"projects",
 								"my"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "cursor",
+									"value": "0"
+								}
 							]
 						}
 					},
@@ -1139,7 +1169,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/projects/:projectId/tasks",
+							"raw": "{{base_url}}/api/v1/projects/:projectId/tasks?limit=5&cursor=0",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1149,6 +1179,16 @@
 								"projects",
 								":projectId",
 								"tasks"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "cursor",
+									"value": "0"
+								}
 							],
 							"variable": [
 								{
@@ -1945,7 +1985,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v2/users/:userId/tasks",
+							"raw": "{{base_url}}/api/v2/users/:userId/tasks?limit=5&cursor=0",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1956,10 +1996,20 @@
 								":userId",
 								"tasks"
 							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "cursor",
+									"value": "0"
+								}
+							],
 							"variable": [
 								{
 									"key": "userId",
-									"value": "6"
+									"value": "3"
 								}
 							]
 						}
@@ -1995,7 +2045,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/v2/users/",
+							"raw": "{{base_url}}/api/v2/users/?limit=5&cursor=0",
 							"host": [
 								"{{base_url}}"
 							],
@@ -2004,6 +2054,16 @@
 								"v2",
 								"users",
 								""
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "cursor",
+									"value": "0"
+								}
 							]
 						}
 					},
