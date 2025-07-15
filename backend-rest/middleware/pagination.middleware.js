@@ -21,7 +21,7 @@ export const paginationMiddleware = (options = {}) => {
   return (req, res, next) => {
     try {
       // Parse cursor from query parameters
-      const cursor = req.query.cursor || null;
+      let cursor = req.query.cursor || null;
       
       // Parse limit from query parameters
       let limit = parseInt(req.query.limit) || defaultLimit;
@@ -32,6 +32,23 @@ export const paginationMiddleware = (options = {}) => {
       }
       if (limit < 1) {
         limit = 1;
+      }
+
+      // Parse cursor to appropriate type based on field
+      if (cursor) {
+        // For numeric fields, convert to integer
+        if (cursorField.includes('_id') || cursorField === 'id') {
+          const parsedCursor = parseInt(cursor, 10);
+          
+          // Validate that the conversion was successful
+          if (isNaN(parsedCursor)) {
+            return res.status(400).json({ 
+              message: `Invalid cursor value: ${cursor} for field: ${cursorField}` 
+            });
+          }
+          
+          cursor = parsedCursor;
+        }
       }
 
       // Add pagination info to request object
