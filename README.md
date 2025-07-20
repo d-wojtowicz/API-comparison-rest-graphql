@@ -14,6 +14,13 @@ This project is a comprehensive comparison between REST and GraphQL APIs, implem
 ![Schemat bazy danych wersja 2 - 2025-05-18 162940](https://github.com/user-attachments/assets/c8095da4-2a58-4183-9b84-8d09fe77ecaa)
 *Database schema visualization showing the core data model*
 
+| REST API | GraphQL API |
+|----------|-------------|
+| <img width="100%" alt="REST" src="https://github.com/user-attachments/assets/63bd11bf-c7aa-44ca-9230-ab1326ad13e7" /> | <img width="100%" alt="GraphQL" src="https://github.com/user-attachments/assets/17bfc474-16e8-45c0-871f-e101307f3c35" /> |
+
+<p align="center"><em>System Architecture Diagrams – REST vs GraphQL</em></p>
+
+---
 ### Implementation Highlights
 - [To be added: Screenshots of the application]
 - [To be added: Performance comparison results]
