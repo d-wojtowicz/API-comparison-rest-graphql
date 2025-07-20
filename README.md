@@ -16,7 +16,7 @@ This project is a comprehensive comparison between REST and GraphQL APIs, implem
 
 | REST API | GraphQL API |
 |----------|-------------|
-| <img width="100%" alt="REST" src="https://github.com/user-attachments/assets/63bd11bf-c7aa-44ca-9230-ab1326ad13e7" /> | <img width="100%" alt="GraphQL" src="https://github.com/user-attachments/assets/17bfc474-16e8-45c0-871f-e101307f3c35" /> |
+| <img width="100%" alt="REST" src="https://github.com/user-attachments/assets/b2c73a03-6ffb-45e3-98ad-8b118354d032" /> | <img width="100%" alt="GraphQL" src="https://github.com/user-attachments/assets/17bfc474-16e8-45c0-871f-e101307f3c35" /> |
 
 <p align="center"><em>System Architecture Diagrams – REST vs GraphQL</em></p>
 
