@@ -1,11 +1,17 @@
 import express from 'express';
 import controller from '../../controllers/v1/notifications.controller.js';
 import { verifyTokenMiddleware, requireSuperAdmin } from '../../../middleware/auth.middleware.js';
+import { paginationMiddleware } from '../../../middleware/pagination.middleware.js';
 
 const router = express.Router();
 
 // Get user's notifications
-router.get('/my', verifyTokenMiddleware, controller.getMyNotifications);
+router.get(
+    '/my', 
+    verifyTokenMiddleware, 
+    paginationMiddleware({ cursorField: 'notification_id' }), 
+    controller.getMyNotifications
+);
 
 // Get unread notifications count
 router.get('/unread/count', verifyTokenMiddleware, controller.getUnreadNotificationsCount);

@@ -4,14 +4,21 @@ import prisma from '../../../db/client.js';
 import { isNotificationOwner, isSuperAdmin } from '../../utils/permissions.js';
 import { publishEvent } from '../../../services/websocket.service.js';
 import { CONSTANTS } from '../../../config/constants.js';
+import { buildPaginationQuery, createPaginatedResponse } from '../../../middleware/pagination.middleware.js';
+
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'NOTIFICATION-SERVICE' : 'rest/services/notifications.service.js';
 
-const getMyNotifications = async (user) => {
+const getMyNotifications = async (user, pagination) => {
   try {
-    return await prisma.notifications.findMany({
+    const paginationQuery = buildPaginationQuery(pagination, 'notification_id');
+    
+    const notifications = await prisma.notifications.findMany({
       where: { user_id: user.userId },
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
+      ...paginationQuery
     });
+    
+    return createPaginatedResponse(notifications, pagination, 'notification_id');
   } catch (error) {
     log.error(NAMESPACE, `getMyNotifications: ${error.message}`);
     throw error;
@@ -187,4 +194,4 @@ export default {
   updateNotification,
   markAllNotificationsAsRead,
   deleteNotification
-}; 
+};

@@ -12,6 +12,12 @@ export const notificationTypeDefs = gql`
     user: User! @defer
   }
 
+  # Paginated notifications response
+  type NotificationsConnection {
+    data: [Notification!]!
+    pagination: PageInfo!
+  }
+
   input CreateNotificationInput {
     user_id: ID!
     message: String!
@@ -22,7 +28,8 @@ export const notificationTypeDefs = gql`
   }
 
   extend type Query {
-    myNotifications: [Notification!]! @auth
+    myNotifications(input: PaginationInput): NotificationsConnection! @auth
+    myNotificationsList: [Notification!]! @auth
     unreadNotificationsCount: Int! @auth
     notification(id: ID!): Notification @auth
   }

@@ -1,6 +1,7 @@
 import express from 'express';
 import usersController from '../../controllers/v2/users.controller.js';
 import { verifyTokenMiddleware, requireAdmin } from '../../../middleware/auth.middleware.js';
+import { paginationMiddleware } from '../../../middleware/pagination.middleware.js';
 
 const router = express.Router();
 
@@ -11,7 +12,13 @@ router.get('/me', verifyTokenMiddleware, usersController.getMe);
 router.get('/:id', verifyTokenMiddleware, usersController.getUserById);
 
 // Get all users (admin only)
-router.get('/', verifyTokenMiddleware, requireAdmin, usersController.getAllUsers);
+router.get(
+    '/', 
+    verifyTokenMiddleware, 
+    requireAdmin, 
+    paginationMiddleware({ cursorField: 'user_id' }), 
+    usersController.getAllUsers
+);
 
 // Register new user
 router.post('/register', usersController.register);
@@ -30,6 +37,11 @@ router.delete('/:id', verifyTokenMiddleware, requireAdmin, usersController.delet
 
 // Dependencies
 // Get tasks by assignee
-router.get('/:userId/tasks', verifyTokenMiddleware, usersController.getTasksByAssignee);
+router.get(
+    '/:userId/tasks', 
+    verifyTokenMiddleware, 
+    paginationMiddleware({ cursorField: 'task_id' }), 
+    usersController.getTasksByAssignee
+);
 
 export default router;

@@ -4,6 +4,7 @@ import prisma from '../../../db/client.js';
 import { isProjectOwner, isProjectMember, isAdmin } from '../../utils/permissions.js';
 import { notificationService } from '../../../services/notification.service.js';
 import { CONSTANTS } from '../../../config/constants.js';
+import { buildPaginationQuery, createPaginatedResponse } from '../../../middleware/pagination.middleware.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'PROJECT-SERVICE' : 'rest/services/projects.service.js';
 
@@ -34,20 +35,29 @@ const getProjectById = async (id, user) => {
   }
 };
 
-const getAllProjects = async () => {
+const getAllProjects = async (pagination) => {
   try {
-    return await prisma.projects.findMany();
+    const paginationQuery = buildPaginationQuery(pagination, 'project_id');
+    
+    const projects = await prisma.projects.findMany({
+      ...paginationQuery
+    });
+    
+    return createPaginatedResponse(projects, pagination, 'project_id');
   } catch (error) {
     log.error(NAMESPACE, `getAllProjects: ${error.message}`);
     throw error;
   }
 };
 
-const getMyProjects = async (user) => {
+const getMyProjects = async (user, pagination) => {
   try {
+    const paginationQuery = buildPaginationQuery(pagination, 'project_id');
+    
     // Get projects where user is owner or member
     const ownedProjects = await prisma.projects.findMany({
-      where: { owner_id: user.userId }
+      where: { owner_id: user.userId },
+      ...paginationQuery
     });
 
     const memberProjects = await prisma.projects.findMany({
@@ -57,7 +67,8 @@ const getMyProjects = async (user) => {
             user_id: user.userId
           }
         }
-      }
+      },
+      ...paginationQuery
     });
 
     // Combine and remove duplicates
@@ -66,7 +77,7 @@ const getMyProjects = async (user) => {
       index === self.findIndex(p => p.project_id === project.project_id)
     );
 
-    return uniqueProjects;
+    return createPaginatedResponse(uniqueProjects, pagination, 'project_id');
   } catch (error) {
     log.error(NAMESPACE, `getMyProjects: ${error.message}`);
     throw error;
@@ -338,7 +349,7 @@ const removeProjectMember = async (projectId, memberUserId, user) => {
 };
 
 // Dependencies
-const getTasksByProject = async (projectId, user) => {
+const getTasksByProject = async (projectId, user, pagination) => {
   try {
     // Check if user has access to the project (admin check is handled by middleware)
     const isOwner = await isProjectOwner(user.userId, Number(projectId));
@@ -348,9 +359,14 @@ const getTasksByProject = async (projectId, user) => {
       throw new Error('Not authorized to view tasks in this project');
     }
 
-    return await prisma.tasks.findMany({
-      where: { project_id: Number(projectId) }
+    const paginationQuery = buildPaginationQuery(pagination, 'task_id');
+    
+    const tasks = await prisma.tasks.findMany({
+      where: { project_id: Number(projectId) },
+      ...paginationQuery
     });
+    
+    return createPaginatedResponse(tasks, pagination, 'task_id');
   } catch (error) {
     log.error(NAMESPACE, `getTasksByProject: ${error.message}`);
     throw error;

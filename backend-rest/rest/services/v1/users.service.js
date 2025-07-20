@@ -4,6 +4,7 @@ import prisma from '../../../db/client.js';
 import bcrypt from 'bcryptjs';
 import { signToken } from '../../../utils/jwt.js';
 import { isSuperAdmin, isAdmin, filterUserFields, isSelf } from '../../utils/permissions.js';
+import { buildPaginationQuery, createPaginatedResponse } from '../../../middleware/pagination.middleware.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'USER-SERVICE' : 'rest/services/users.service.js';
 
@@ -53,8 +54,10 @@ const getUserById = async (id, requestingUser) => {
   }
 };
 
-const getAllUsers = async (requestingUser) => {
+const getAllUsers = async (requestingUser, pagination) => {
   try {
+    const paginationQuery = buildPaginationQuery(pagination, 'user_id');
+    
     const users = await prisma.users.findMany({
       select: {
         user_id: true,
@@ -66,10 +69,13 @@ const getAllUsers = async (requestingUser) => {
         created_at: true,
         updated_at: true,
         role: true,
-      }
+      },
+      ...paginationQuery
     });
     
-    return users.map(user => filterUserFields(user, requestingUser));
+    const filteredUsers = users.map(user => filterUserFields(user, requestingUser));
+    
+    return createPaginatedResponse(filteredUsers, pagination, 'user_id');
   } catch (error) {
     log.error(NAMESPACE, `getAllUsers: ${error.message}`);
     throw error;
@@ -297,16 +303,21 @@ const deleteUser = async (id, currentUser) => {
 };
 
 // Dependencies
-const getTasksByAssignee = async (assigneeId, user) => {
+const getTasksByAssignee = async (assigneeId, user, pagination) => {
   try {
     // Users can only view their own assigned tasks unless they're admin (admin check is handled by middleware)
     if (!isSelf(user, Number(assigneeId)) && !isAdmin(user)) {
       throw new Error('Not authorized to view these tasks');
     }
 
-    return await prisma.tasks.findMany({
-      where: { assignee_id: Number(assigneeId) }
+    const paginationQuery = buildPaginationQuery(pagination, 'task_id');
+    
+    const tasks = await prisma.tasks.findMany({
+      where: { assignee_id: Number(assigneeId) },
+      ...paginationQuery
     });
+    
+    return createPaginatedResponse(tasks, pagination, 'task_id');
   } catch (error) {
     log.error(NAMESPACE, `getTasksByAssignee: ${error.message}`);
     throw error;

@@ -22,8 +22,20 @@ export const projectTypeDefs = gql`
     role: String
     
     # Relationship fields to fetch full project and user data
-    project: Project! @defer
+    project: Project! @defer  
     user: User! @defer
+  }
+
+  # Paginated projects response
+  type ProjectsConnection {
+    data: [Project!]!
+    pagination: PageInfo!
+  }
+
+  # Paginated project members response
+  type ProjectMembersConnection {
+    data: [ProjectMember!]!
+    pagination: PageInfo!
   }
 
   input CreateProjectInput {
@@ -44,8 +56,10 @@ export const projectTypeDefs = gql`
 
   extend type Query {
     project(id: ID!): Project @auth
-    projects: [Project!]! @auth(requires: ADMIN)
-    myProjects: [Project!]! @auth
+    projects(input: PaginationInput): ProjectsConnection! @auth(requires: ADMIN)
+    projectsList: [Project!]! @auth(requires: ADMIN)
+    myProjects(input: PaginationInput): ProjectsConnection! @auth
+    myProjectsList: [Project!]! @auth
     projectMembers(project_id: ID!): [ProjectMember!]! @auth
   }
 

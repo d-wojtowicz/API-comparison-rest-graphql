@@ -21,6 +21,12 @@ export const userTypeDefs = gql`
     comments: [TaskComment!]! @defer
   }
 
+  # Paginated users response
+  type UsersConnection {
+    data: [User!]!
+    pagination: PageInfo!
+  }
+
   # Input types
   input RegisterInput {
     username: String!
@@ -48,7 +54,8 @@ export const userTypeDefs = gql`
   extend type Query {
     me: User @auth
     user(id: ID!): User @auth
-    users: [User!]! @auth(requires: ADMIN)
+    users(input: PaginationInput): UsersConnection! @auth(requires: ADMIN)
+    usersList: [User!]! @auth(requires: ADMIN)
   }
 
   # Mutations

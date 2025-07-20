@@ -1,17 +1,29 @@
 import express from 'express';
 import projectsController from '../../controllers/v1/projects.controller.js';
 import { verifyTokenMiddleware, requireAdmin } from '../../../middleware/auth.middleware.js';
+import { paginationMiddleware } from '../../../middleware/pagination.middleware.js';
 
 const router = express.Router();
 
 // Get user's projects
-router.get('/my', verifyTokenMiddleware, projectsController.getMyProjects);
+router.get(
+    '/my', 
+    verifyTokenMiddleware, 
+    paginationMiddleware({ cursorField: 'project_id' }), 
+    projectsController.getMyProjects
+);
 
 // Get project by ID
 router.get('/:id', verifyTokenMiddleware, projectsController.getProjectById);
 
 // Get all projects (admin only)
-router.get('/', verifyTokenMiddleware, requireAdmin, projectsController.getAllProjects);
+router.get(
+    '/', 
+    verifyTokenMiddleware, 
+    requireAdmin, 
+    paginationMiddleware({ cursorField: 'project_id' }), 
+    projectsController.getAllProjects
+);
 
 // Get project members
 router.get('/:id/members', verifyTokenMiddleware, projectsController.getProjectMembers);
@@ -33,7 +45,11 @@ router.delete('/:id/members/:userId', verifyTokenMiddleware, requireAdmin, proje
 
 // Dependencies
 // Get tasks by project
-router.get('/:projectId/tasks', verifyTokenMiddleware, projectsController.getTasksByProject);
-
+router.get(
+    '/:projectId/tasks', 
+    verifyTokenMiddleware, 
+    paginationMiddleware({ cursorField: 'task_id' }), 
+    projectsController.getTasksByProject
+);
 
 export default router; 

@@ -3,6 +3,7 @@ import log from '../../config/logging.js';
 import CONFIG from '../../config/config.js';
 import { CONSTANTS } from '../../config/constants.js';
 import { notificationService } from '../../services/notification.service.js';
+import { parsePaginationInput, buildPaginationQuery, createPaginatedResponse } from '../../utils/pagination.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'TASK-RESOLVER' : 'graphql/resolvers/tasks.resolvers.js';
 
@@ -66,35 +67,96 @@ export const taskResolvers = {
       return task;
     },
 
-    tasksByProject: async (_, { projectId }, { user, loaders }) => {
+    tasksByProject: async (_, { projectId, input }, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'tasksByProject: User not authenticated');
         throw new Error('Not authenticated');
       }
-
-      const tasks = await loaders.tasksByProjectLoader.load(Number(projectId));
 
       if (!await hasTaskAccess(user, { project_id: Number(projectId) }, loaders) && !isAdmin(user)) {
         log.error(NAMESPACE, 'tasksByProject: User not authorized to view tasks in this project');
         throw new Error('Not authorized to view tasks in this project');
       }
 
+      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
+      const paginationQuery = buildPaginationQuery(pagination, 'task_id');
+      
+      // Build the base where clause
+      const baseWhere = { project_id: Number(projectId) };
+
+      // Merge pagination where clause with base where clause
+      const finalWhere = paginationQuery.where 
+        ? { AND: [baseWhere, paginationQuery.where] }
+        : baseWhere;
+
+      const tasks = await prisma.tasks.findMany({
+        where: finalWhere,
+        take: paginationQuery.take,
+        orderBy: paginationQuery.orderBy
+      });
+      
+      return createPaginatedResponse(tasks, pagination, 'task_id');
+    },
+    tasksByProjectList: async (_, { projectId }, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'tasksByProjectList: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      if (!await hasTaskAccess(user, { project_id: Number(projectId) }, loaders) && !isAdmin(user)) {
+        log.error(NAMESPACE, 'tasksByProjectList: User not authorized to view tasks in this project');
+        throw new Error('Not authorized to view tasks in this project');
+      }
+
+      const tasks = await loaders.tasksByProjectLoader.load(Number(projectId));
+
       return tasks;
     },
 
-    tasksByAssignee: async (_, { assigneeId }, { user, loaders }) => {
+    tasksByAssignee: async (_, { assigneeId, input }, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'tasksByAssignee: User not authenticated');
         throw new Error('Not authenticated');
       }
-
-      const tasks = await loaders.tasksByAssigneeLoader.load(Number(assigneeId));
 
       // Users can only view their own assigned tasks unless they're admin
       if (!isAdmin(user) && !isSelf(user, Number(assigneeId))) {
         log.error(NAMESPACE, 'tasksByAssignee: User not authorized to view these tasks');
         throw new Error('Not authorized to view these tasks');
       }
+
+      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
+      const paginationQuery = buildPaginationQuery(pagination, 'task_id');
+      
+      // Build the base where clause
+      const baseWhere = { assignee_id: Number(assigneeId) };
+
+      // Merge pagination where clause with base where clause
+      const finalWhere = paginationQuery.where 
+        ? { AND: [baseWhere, paginationQuery.where] }
+        : baseWhere;
+
+      const tasks = await prisma.tasks.findMany({
+        where: finalWhere,
+        take: paginationQuery.take,
+        orderBy: paginationQuery.orderBy
+      });
+      
+      return createPaginatedResponse(tasks, pagination, 'task_id');
+    },
+    tasksByAssigneeList: async (_, { assigneeId }, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'tasksByAssigneeList: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      // Users can only view their own assigned tasks unless they're admin
+      if (!isAdmin(user) && !isSelf(user, Number(assigneeId))) {
+        log.error(NAMESPACE, 'tasksByAssigneeList: User not authorized to view these tasks');
+        throw new Error('Not authorized to view these tasks');
+      }
+
+      const tasks = await loaders.tasksByAssigneeLoader.load(Number(assigneeId));
 
       return tasks;
     },
@@ -386,10 +448,32 @@ export const taskResolvers = {
     assignee: (parent, _, { loaders }) => {
       return loaders.userLoader.load(parent.assignee_id);
     },
-    comments: (parent, _, { loaders }) => {
+    comments: async (parent, _, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'Task.comments: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      // Check if user has access to the task
+      if (!await hasTaskAccess(user, parent, loaders) && !isAdmin(user)) {
+        log.error(NAMESPACE, 'Task.comments: Not authorized to view task comments');
+        throw new Error('Not authorized');
+      }
+
       return loaders.taskCommentsLoader.load(parent.task_id);
     },
-    attachments: (parent, _, { loaders }) => {
+    attachments: async (parent, _, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'Task.attachments: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      // Check if user has access to the task
+      if (!await hasTaskAccess(user, parent, loaders) && !isAdmin(user)) {
+        log.error(NAMESPACE, 'Task.attachments: Not authorized to view task attachments');
+        throw new Error('Not authorized');
+      }
+
       return loaders.taskAttachmentsLoader.load(parent.task_id);
     }
   }

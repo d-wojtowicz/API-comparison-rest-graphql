@@ -22,8 +22,8 @@ const getProjectById = async (req, res) => {
 
 const getAllProjects = async (req, res) => {
   try {
-    const projects = await projectService.getAllProjects();
-    res.status(200).json(projects);
+    const paginatedProjects = await projectService.getAllProjects(req.pagination);
+    res.status(200).json(paginatedProjects);
   } catch (error) {
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }
@@ -31,8 +31,8 @@ const getAllProjects = async (req, res) => {
 
 const getMyProjects = async (req, res) => {
   try {
-    const projects = await projectService.getMyProjects(req.user);
-    res.status(200).json(projects);
+    const paginatedProjects = await projectService.getMyProjects(req.user, req.pagination);
+    res.status(200).json(paginatedProjects);
   } catch (error) {
     res.status(500).json({ message: CONSTANTS.STATUS_MESSAGES.INTERNAL_SERVER_ERROR });
   }
@@ -132,8 +132,8 @@ const removeProjectMember = async (req, res) => {
 // Dependencies
 const getTasksByProject = async (req, res) => {
   try {
-    const tasks = await projectService.getTasksByProject(req.params.projectId, req.user);
-    res.status(200).json(tasks);
+    const paginatedTasks = await projectService.getTasksByProject(req.params.projectId, req.user, req.pagination);
+    res.status(200).json(paginatedTasks);
   } catch (error) {
     if (error.message === 'Project not found') {
       return res.status(404).json({ message: error.message });

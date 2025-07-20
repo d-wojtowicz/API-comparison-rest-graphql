@@ -3,6 +3,7 @@ import log from '../../config/logging.js';
 import CONFIG from '../../config/config.js';
 import { CONSTANTS } from '../../config/constants.js';
 import { notificationService } from '../../services/notification.service.js';
+import { parsePaginationInput, buildPaginationQuery, createPaginatedResponse } from '../../utils/pagination.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'PROJECT-RESOLVER' : 'graphql/resolvers/projects.resolvers.js';
 
@@ -38,7 +39,7 @@ export const projectResolvers = {
 
       return project;
     },
-    projects: async (_, __, { user, loaders }) => {
+    projects: async (_, { input }, { user }) => {
       if (!user) {
         log.error(NAMESPACE, 'projects: User not authenticated');
         throw new Error('Not authenticated');
@@ -49,17 +50,92 @@ export const projectResolvers = {
         throw new Error('Not authorized');
       }
 
-      return prisma.projects.findMany();
+      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
+      const paginationQuery = buildPaginationQuery(pagination, 'project_id');
+      
+      const projects = await prisma.projects.findMany({
+        ...paginationQuery
+      });
+      
+      return createPaginatedResponse(projects, pagination, 'project_id');
     },
-    myProjects: async (_, __, { user, loaders }) => {
+    projectsList: async (_, __, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'projectsList: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      if (!isAdmin(user)) {
+        log.error(NAMESPACE, 'projectsList: Not authorized to access all projects');
+        throw new Error('Not authorized');
+      }
+
+      const projects = await prisma.projects.findMany();
+
+      return projects;
+    },
+    myProjects: async (_, { input }, { user }) => {
       if (!user) {
         log.error(NAMESPACE, 'myProjects: User not authenticated');
         throw new Error('Not authenticated');
       }
 
-      const myProjects = await loaders.myProjectsLoader.load(user.userId);
+      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
+      const paginationQuery = buildPaginationQuery(pagination, 'project_id');
+      
+      // Build the base where clause
+      const baseWhere = {
+        OR: [
+          {
+            project_members: {
+              some: {
+                user_id: user.userId
+              }
+            }
+          },
+          {
+            owner_id: user.userId
+          }
+        ]
+      };
 
-      return myProjects;
+      // Merge pagination where clause with base where clause
+      const finalWhere = paginationQuery.where 
+        ? { AND: [baseWhere, paginationQuery.where] }
+        : baseWhere;
+
+      const memberProjects = await prisma.projects.findMany({
+        where: finalWhere,
+        take: paginationQuery.take,
+        orderBy: paginationQuery.orderBy
+      });
+
+      return createPaginatedResponse(memberProjects, pagination, 'project_id');
+    },
+    myProjectsList: async (_, __, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'myProjectsList: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      const memberProjects = await prisma.projects.findMany({
+        where: {
+          OR: [
+            {
+              project_members: {
+                some: {
+                  user_id: user.userId
+                }
+              }
+            },
+            {
+              owner_id: user.userId
+            }
+          ]
+        }
+      });
+
+      return memberProjects;
     },
     projectMembers: async (_, { project_id }, { user, loaders }) => {
       if (!user) {
@@ -287,10 +363,24 @@ export const projectResolvers = {
     owner: (parent, _, { loaders }) => {
       return loaders.userLoader.load(parent.owner_id);
     },
-    members: (parent, _, { loaders }) => {
+    members: async (parent, _, { user, loaders }) => {
+      if (!user) return [];
+
+      // Check if user has access to the project
+      if (!isProjectOwner(user, parent) && !(await isProjectMember(user, parent.project_id, loaders)) && !isAdmin(user)) {
+        return [];
+      }
+
       return loaders.projectMembersByProjectLoader.load(parent.project_id);
     },
-    tasks: (parent, _, { loaders }) => {
+    tasks: async (parent, _, { user, loaders }) => {
+      if (!user) return [];
+
+      // Check if user has access to the project
+      if (!isProjectOwner(user, parent) && !(await isProjectMember(user, parent.project_id, loaders)) && !isAdmin(user)) {
+        return [];
+      }
+
       return loaders.tasksByProjectLoader.load(parent.project_id);
     }
   },

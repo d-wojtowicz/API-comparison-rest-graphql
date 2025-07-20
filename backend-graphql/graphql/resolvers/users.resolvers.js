@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { signToken, verifyToken } from '../../utils/jwt.js';
 import log from '../../config/logging.js';
 import CONFIG from '../../config/config.js';
+import { parsePaginationInput, buildPaginationQuery, createPaginatedResponse } from '../../utils/pagination.js';
 
 const NAMESPACE = CONFIG.server.env == 'PROD' ? 'USER-RESOLVER' : 'graphql/resolvers/users.resolvers.js';
 
@@ -35,7 +36,7 @@ export const userResolvers = {
 
       return targetUser;
     },
-    users: async (_, __, { user }) => {
+    users: async (_, { input }, { user }) => {
       if (!user) {
         log.error(NAMESPACE, 'users: User not authenticated');
         throw new Error('Not authenticated');
@@ -46,7 +47,29 @@ export const userResolvers = {
         throw new Error('Not authorized');
       }
 
-      return prisma.users.findMany();
+      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
+      const paginationQuery = buildPaginationQuery(pagination, 'user_id');
+      
+      const users = await prisma.users.findMany({
+        ...paginationQuery
+      });
+      
+      return createPaginatedResponse(users, pagination, 'user_id');
+    },
+    usersList: async (_, __, { user }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'usersList: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+      
+      if (!isAdmin(user)) {
+        log.error(NAMESPACE, 'usersList: User not authorized');
+        throw new Error('Not authorized');
+      }
+
+      const users = await prisma.users.findMany();
+
+      return users;
     },
   },
   Mutation: {
@@ -223,48 +246,85 @@ export const userResolvers = {
   },
   User: {
     memberOf: async (parent, _, { user, loaders }) => {
-      if (!user) return [];
+      if (!user) {
+        log.error(NAMESPACE, 'User.memberOf: User not authenticated');
+        throw new Error('Not authenticated');
+      }
       
       // Users can only see their own project memberships unless they're admin
       if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
-        return [];
+        log.error(NAMESPACE, 'User.memberOf: Not authorized to view these project memberships');
+        throw new Error('Not authorized');
       }
+
       return loaders.projectMembersByUserLoader.load(parent.user_id);
     },
     projects: async (parent, _, { user, loaders }) => {
-      if (!user) return [];
+      if (!user) {
+        log.error(NAMESPACE, 'User.projects: User not authenticated');
+        throw new Error('Not authenticated');
+      }
       
       // Users can only see their own projects unless they're admin
       if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
         return [];
       }
-      return loaders.projectsByUserLoader.load(parent.user_id);
+
+      // Get projects where user is owner or member
+      const ownedProjects = await loaders.projectsByUserLoader.load(parent.user_id);
+
+      const memberProjects = await prisma.projects.findMany({
+        where: {
+          project_members: {
+            some: {
+              user_id: parent.user_id
+            }
+          }
+        }
+      });
+
+      // Combine and remove duplicates
+      const allProjects = [...ownedProjects, ...memberProjects];
+      const uniqueProjects = allProjects.filter((project, index, self) => 
+        index === self.findIndex(p => p.project_id === project.project_id)
+      );
+
+      return uniqueProjects;
     },
     notifications: async (parent, _, { user, loaders }) => {
-      if (!user) return [];
+      if (!user) {
+        return [];
+      }
       
       // Users can only see their own notifications unless they're admin
       if (!isSuperAdmin(user) && !isSelf(user, parent.user_id)) {
         return [];
       }
+
       return loaders.notificationsByUserLoader.load(parent.user_id);
     },
     tasks: async (parent, _, { user, loaders }) => {
-      if (!user) return [];
+      if (!user) {
+        return [];
+      }
       
       // Users can only see their own tasks unless they're admin
       if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
         return [];
       }
+
       return loaders.tasksByAssigneeLoader.load(parent.user_id);
     },
     comments: async (parent, _, { user, loaders }) => {
-      if (!user) return [];
+      if (!user) {
+        return [];
+      }
       
       // Users can only see their own comments unless they're admin
       if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
         return [];
       }
+
       return loaders.taskCommentsByUserLoader.load(parent.user_id);
     }
   }

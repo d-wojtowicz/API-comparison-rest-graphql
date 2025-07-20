@@ -2,6 +2,7 @@ import prisma from '../../db/client.js';
 import log from '../../config/logging.js';
 import CONFIG from '../../config/config.js';
 import { CONSTANTS } from '../../config/constants.js';
+import { parsePaginationInput, buildPaginationQuery, createPaginatedResponse } from '../../utils/pagination.js';
 
 const NAMESPACE = CONFIG.server.env === 'PROD' ? 'NOTIFICATION-RESOLVER' : 'graphql/resolvers/notifications.resolvers.js';
 
@@ -11,9 +12,34 @@ const isSuperAdmin = (user) => user?.role === 'superadmin';
 
 export const notificationResolvers = {
   Query: {
-    myNotifications: async (_, __, { user, loaders }) => {
+    myNotifications: async (_, { input }, { user }) => {
       if (!user) {
         log.error(NAMESPACE, 'myNotifications: User not authenticated');
+        throw new Error('Not authenticated');
+      }
+
+      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
+      const paginationQuery = buildPaginationQuery(pagination, 'notification_id');
+      
+      // Build the base where clause
+      const baseWhere = { user_id: user.userId };
+
+      // Merge pagination where clause with base where clause
+      const finalWhere = paginationQuery.where 
+        ? { AND: [baseWhere, paginationQuery.where] }
+        : baseWhere;
+
+      const notifications = await prisma.notifications.findMany({
+        where: finalWhere,
+        orderBy: { created_at: 'desc' },
+        take: paginationQuery.take
+      });
+      
+      return createPaginatedResponse(notifications, pagination, 'notification_id');
+    },
+    myNotificationsList: async (_, __, { user, loaders }) => {
+      if (!user) {
+        log.error(NAMESPACE, 'myNotificationsList: User not authenticated');
         throw new Error('Not authenticated');
       }
 
