@@ -289,21 +289,21 @@ export const taskResolvers = {
           await notificationService.notifyTaskAssignee(id, CONSTANTS.NOTIFICATIONS.TYPES.TASK.STATUS_CHANGED, {
             taskName: task.task_name,
             status: status.status_name
-          });
+          }, pubsub);
         }
 
         if (input.priority !== undefined && input.priority !== task.priority) {
           await notificationService.notifyTaskAssignee(id, CONSTANTS.NOTIFICATIONS.TYPES.TASK.PRIORITY_CHANGED, {
             taskName: task.task_name,
             priority: input.priority
-          });
+          }, pubsub);
         }
 
         if (input.due_date && input.due_date !== task.due_date) {
           await notificationService.notifyTaskAssignee(id, CONSTANTS.NOTIFICATIONS.TYPES.TASK.DUE_DATE_CHANGED, {
             taskName: task.task_name,
             dueDate: new Date(input.due_date).toLocaleDateString()
-          });
+          }, pubsub);
         }
 
         if (input.assignee_id !== undefined && input.assignee_id !== task.assignee_id) {
