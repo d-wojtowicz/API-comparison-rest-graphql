@@ -17,8 +17,8 @@ export const taskTypeDefs = gql`
     status: TaskStatus!
     project: Project! @defer
     assignee: User @defer
-    comments(input: PaginationInput): TaskCommentsConnection! @defer
-    attachments(input: PaginationInput): TaskAttachmentsConnection! @defer
+    comments: [TaskComment!]! @defer
+    attachments: [TaskAttachment!]! @defer
   }
 
   # Paginated tasks response

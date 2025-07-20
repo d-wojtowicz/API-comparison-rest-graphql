@@ -60,9 +60,16 @@ export const buildPaginationQuery = (pagination, cursorField = 'id') => {
 
   // Add cursor condition if cursor is provided
   if (cursor) {
+    // Convert cursor to integer for ID fields
+    const cursorValue = parseInt(cursor, 10);
+    if (isNaN(cursorValue)) {
+      log.error(NAMESPACE, `buildPaginationQuery: Invalid cursor value: ${cursor}`);
+      throw new Error(`Invalid cursor value: ${cursor}`);
+    }
+    
     query.where = {
       [cursorField]: {
-        gt: cursor
+        gt: cursorValue
       }
     };
   }

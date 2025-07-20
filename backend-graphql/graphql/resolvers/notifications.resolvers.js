@@ -21,10 +21,18 @@ export const notificationResolvers = {
       const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
       const paginationQuery = buildPaginationQuery(pagination, 'notification_id');
       
+      // Build the base where clause
+      const baseWhere = { user_id: user.userId };
+
+      // Merge pagination where clause with base where clause
+      const finalWhere = paginationQuery.where 
+        ? { AND: [baseWhere, paginationQuery.where] }
+        : baseWhere;
+
       const notifications = await prisma.notifications.findMany({
-        where: { user_id: user.userId },
+        where: finalWhere,
         orderBy: { created_at: 'desc' },
-        ...paginationQuery
+        take: paginationQuery.take
       });
       
       return createPaginatedResponse(notifications, pagination, 'notification_id');

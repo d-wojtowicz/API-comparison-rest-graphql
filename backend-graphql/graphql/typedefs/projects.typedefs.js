@@ -11,8 +11,8 @@ export const projectTypeDefs = gql`
 
     # Relationship fields
     owner: User! @defer
-    members(input: PaginationInput): ProjectMembersConnection! @defer
-    tasks(input: PaginationInput): TasksConnection! @defer
+    members: [ProjectMember!]! @defer
+    tasks: [Task!]! @defer
   }
 
   # Junction type for many-to-many relationship between Project and User
@@ -22,7 +22,7 @@ export const projectTypeDefs = gql`
     role: String
     
     # Relationship fields to fetch full project and user data
-    project: Project! @defer
+    project: Project! @defer  
     user: User! @defer
   }
 
@@ -57,6 +57,7 @@ export const projectTypeDefs = gql`
   extend type Query {
     project(id: ID!): Project @auth
     projects(input: PaginationInput): ProjectsConnection! @auth(requires: ADMIN)
+    projectsList: [Project!]! @auth(requires: ADMIN)
     myProjects(input: PaginationInput): ProjectsConnection! @auth
     myProjectsList: [Project!]! @auth
     projectMembers(project_id: ID!): [ProjectMember!]! @auth

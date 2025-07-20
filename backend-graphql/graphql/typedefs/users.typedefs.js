@@ -14,11 +14,11 @@ export const userTypeDefs = gql`
     password_hash: String! @auth(requires: SUPERADMIN)
 
     # Relationship fields
-    projects(input: PaginationInput): ProjectsConnection! @defer
-    memberOf(input: PaginationInput): ProjectMembersConnection! @defer
-    tasks(input: PaginationInput): TasksConnection! @defer
-    notifications(input: PaginationInput): NotificationsConnection! @defer
-    comments(input: PaginationInput): TaskCommentsConnection! @defer
+    projects: [Project!]! @defer
+    memberOf: [ProjectMember!]! @defer
+    tasks: [Task!]! @defer
+    notifications: [Notification!]! @defer
+    comments: [TaskComment!]! @defer
   }
 
   # Paginated users response
@@ -55,6 +55,7 @@ export const userTypeDefs = gql`
     me: User @auth
     user(id: ID!): User @auth
     users(input: PaginationInput): UsersConnection! @auth(requires: ADMIN)
+    usersList: [User!]! @auth(requires: ADMIN)
   }
 
   # Mutations

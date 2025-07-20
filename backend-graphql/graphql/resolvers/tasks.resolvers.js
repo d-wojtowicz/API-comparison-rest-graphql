@@ -81,9 +81,18 @@ export const taskResolvers = {
       const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
       const paginationQuery = buildPaginationQuery(pagination, 'task_id');
       
+      // Build the base where clause
+      const baseWhere = { project_id: Number(projectId) };
+
+      // Merge pagination where clause with base where clause
+      const finalWhere = paginationQuery.where 
+        ? { AND: [baseWhere, paginationQuery.where] }
+        : baseWhere;
+
       const tasks = await prisma.tasks.findMany({
-        where: { project_id: Number(projectId) },
-        ...paginationQuery
+        where: finalWhere,
+        take: paginationQuery.take,
+        orderBy: paginationQuery.orderBy
       });
       
       return createPaginatedResponse(tasks, pagination, 'task_id');
@@ -119,9 +128,18 @@ export const taskResolvers = {
       const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
       const paginationQuery = buildPaginationQuery(pagination, 'task_id');
       
+      // Build the base where clause
+      const baseWhere = { assignee_id: Number(assigneeId) };
+
+      // Merge pagination where clause with base where clause
+      const finalWhere = paginationQuery.where 
+        ? { AND: [baseWhere, paginationQuery.where] }
+        : baseWhere;
+
       const tasks = await prisma.tasks.findMany({
-        where: { assignee_id: Number(assigneeId) },
-        ...paginationQuery
+        where: finalWhere,
+        take: paginationQuery.take,
+        orderBy: paginationQuery.orderBy
       });
       
       return createPaginatedResponse(tasks, pagination, 'task_id');
@@ -430,7 +448,7 @@ export const taskResolvers = {
     assignee: (parent, _, { loaders }) => {
       return loaders.userLoader.load(parent.assignee_id);
     },
-    comments: async (parent, { input }, { user, loaders }) => {
+    comments: async (parent, _, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'Task.comments: User not authenticated');
         throw new Error('Not authenticated');
@@ -442,18 +460,9 @@ export const taskResolvers = {
         throw new Error('Not authorized');
       }
 
-      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
-      const paginationQuery = buildPaginationQuery(pagination, 'comment_id');
-      
-      const comments = await prisma.task_comments.findMany({
-        where: { task_id: parent.task_id },
-        orderBy: { created_at: 'desc' },
-        ...paginationQuery
-      });
-      
-      return createPaginatedResponse(comments, pagination, 'comment_id');
+      return loaders.taskCommentsLoader.load(parent.task_id);
     },
-    attachments: async (parent, { input }, { user, loaders }) => {
+    attachments: async (parent, _, { user, loaders }) => {
       if (!user) {
         log.error(NAMESPACE, 'Task.attachments: User not authenticated');
         throw new Error('Not authenticated');
@@ -465,16 +474,7 @@ export const taskResolvers = {
         throw new Error('Not authorized');
       }
 
-      const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
-      const paginationQuery = buildPaginationQuery(pagination, 'attachment_id');
-      
-      const attachments = await prisma.task_attachments.findMany({
-        where: { task_id: parent.task_id },
-        orderBy: { uploaded_at: 'desc' },
-        ...paginationQuery
-      });
-      
-      return createPaginatedResponse(attachments, pagination, 'attachment_id');
+      return loaders.taskAttachmentsLoader.load(parent.task_id);
     }
   }
 }; 
