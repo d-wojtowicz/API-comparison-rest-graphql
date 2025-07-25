@@ -47,9 +47,17 @@ const createTask = async (taskData, user) => {
 
     // If assignee is specified, verify they are a project member
     if (assignee_id) {
+      const doesAssigneeExist = await prisma.users.findUnique({
+        where: { user_id: Number(assignee_id) }
+      });
+      if (!doesAssigneeExist) {
+        log.error(NAMESPACE, `createTask: Assignee does not exist`);
+        throw new Error('Assignee does not exist');
+      }
+      
       const isAssigneeMember = await isProjectMember(Number(assignee_id), Number(project_id));
       const isAssigneeOwner = await isProjectOwner(Number(assignee_id), Number(project_id));
-      if (!isAssigneeMember && !isAssigneeOwner && !isAdmin) {
+      if (!isAssigneeMember && !isAssigneeOwner && !isAdmin(user)) {
         log.error(NAMESPACE, `createTask: Assignee must be a member of the project`);
         throw new Error('Assignee must be a member of the project');
       }

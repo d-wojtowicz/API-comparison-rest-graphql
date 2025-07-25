@@ -34,6 +34,9 @@ const createTask = async (req, res) => {
     if (error.message === 'Not authorized to create tasks in this project') {
       return res.status(403).json({ message: error.message });
     }
+    if (error.message === 'Assignee does not exist') {
+      return res.status(400).json({ message: error.message });
+    }
     if (error.message === 'Assignee must be a member of the project') {
       return res.status(400).json({ message: error.message });
     }
