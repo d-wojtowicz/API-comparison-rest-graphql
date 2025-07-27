@@ -1,7 +1,7 @@
 import CONFIG from '../../../config/config.js';
 import log from '../../../config/logging.js';
 import prisma from '../../../db/client.js';
-import { isProjectOwner, isProjectMember, hasTaskAccess, isSelf, isAdmin } from '../../utils/permissions.js';
+import { isProjectOwnerById, isProjectMember, hasTaskAccess, isSelf, isAdmin } from '../../utils/permissions.js';
 import { notificationService } from '../../../services/notification.service.js';
 import { CONSTANTS } from '../../../config/constants.js';
 
@@ -37,7 +37,7 @@ const createTask = async (taskData, user) => {
     const { project_id, status_id, assignee_id, ...otherFields } = taskData;
 
     // Check if user has access to the project (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(user.userId, Number(project_id));
+    const isOwner = await isProjectOwnerById(user.userId, Number(project_id));
     const isMember = await isProjectMember(user.userId, Number(project_id));
 
     if (!isOwner && !isMember && !isAdmin(user)) {
@@ -56,7 +56,7 @@ const createTask = async (taskData, user) => {
       }
       
       const isAssigneeMember = await isProjectMember(Number(assignee_id), Number(project_id));
-      const isAssigneeOwner = await isProjectOwner(Number(assignee_id), Number(project_id));
+      const isAssigneeOwner = await isProjectOwnerById(Number(assignee_id), Number(project_id));
       if (!isAssigneeMember && !isAssigneeOwner && !isAdmin(user)) {
         log.error(NAMESPACE, `createTask: Assignee must be a member of the project`);
         throw new Error('Assignee must be a member of the project');
@@ -210,7 +210,7 @@ const deleteTask = async (id, user) => {
     }
 
     // Check if user has access to the task (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(user.userId, task.project_id);
+    const isOwner = await isProjectOwnerById(user.userId, task.project_id);
     if (!isOwner && !isAdmin(user)) {
       log.error(NAMESPACE, `deleteTask: User not authorized to delete this task`);
       throw new Error('Not authorized to delete this task');

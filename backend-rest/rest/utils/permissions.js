@@ -7,7 +7,11 @@ export const isNotificationOwner = (userId, notification) => {
   return notification?.user_id === userId;
 };
 
-export const isProjectOwner = async (userId, projectId) => {
+export const isProjectOwner = async (userId, project) => {
+  return project?.owner_id === userId;
+};
+
+export const isProjectOwnerById = async (userId, projectId) => {
   const project = await prisma.projects.findUnique({
     where: { project_id: Number(projectId) }
   });

@@ -1,7 +1,7 @@
 import CONFIG from '../../../config/config.js';
 import log from '../../../config/logging.js';
 import prisma from '../../../db/client.js';
-import { isProjectOwner, isProjectMember, isAdmin } from '../../utils/permissions.js';
+import { isProjectOwner, isProjectOwnerById, isProjectMember, isAdmin } from '../../utils/permissions.js';
 import { notificationService } from '../../../services/notification.service.js';
 import { CONSTANTS } from '../../../config/constants.js';
 import { buildPaginationQuery, createPaginatedResponse } from '../../../middleware/pagination.middleware.js';
@@ -20,7 +20,7 @@ const getProjectById = async (id, user) => {
     }
 
     // Check if user is owner, member, or admin
-    const isOwner = await isProjectOwner(user.userId, Number(id));
+    const isOwner = await isProjectOwner(user.userId, project);
     const isMember = await isProjectMember(user.userId, Number(id));
 
     if (!isOwner && !isMember && !isAdmin(user)) {
@@ -96,7 +96,7 @@ const getProjectMembers = async (projectId, user) => {
     }
 
     // Check if user is owner, member, or admin (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(user.userId, Number(projectId));
+    const isOwner = await isProjectOwner(user.userId, project);
     const isMember = await isProjectMember(user.userId, Number(projectId));
 
     if (!isOwner && !isMember && !isAdmin(user)) {
@@ -153,7 +153,7 @@ const updateProject = async (id, projectData, user) => {
     }
 
     // Only owner can update project (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(user.userId, Number(id));
+    const isOwner = await isProjectOwner(user.userId, project);
 
     if (!isOwner && !isAdmin(user)) {
       log.error(NAMESPACE, `updateProject: Not authorized to update this project`);
@@ -197,7 +197,7 @@ const deleteProject = async (id, user) => {
     }
 
     // Only owner can delete project (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(user.userId, Number(id));
+    const isOwner = await isProjectOwner(user.userId, project);
 
     if (!isOwner && !isAdmin(user)) {
       log.error(NAMESPACE, `deleteProject: Not authorized to delete this project`);
@@ -236,7 +236,7 @@ const addProjectMember = async (projectId, memberUserId, role, user) => {
     }
 
     // Only owner can add members (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(user.userId, Number(projectId));
+    const isOwner = await isProjectOwner(user.userId, project);
 
     if (!isOwner && !isAdmin(user)) {
       log.error(NAMESPACE, `addProjectMember: Not authorized to add members to this project`);
@@ -300,7 +300,7 @@ const removeProjectMember = async (projectId, memberUserId, user) => {
     }
 
     // Only owner can remove members (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(user.userId, Number(projectId));
+    const isOwner = await isProjectOwner(user.userId, project);
 
     if (!isOwner && !isAdmin(user)) {
       log.error(NAMESPACE, `removeProjectMember: Not authorized to remove members from this project`);
@@ -352,7 +352,7 @@ const removeProjectMember = async (projectId, memberUserId, user) => {
 const getTasksByProject = async (projectId, user, pagination) => {
   try {
     // Check if user has access to the project (admin check is handled by middleware)
-    const isOwner = await isProjectOwner(user.userId, Number(projectId));
+    const isOwner = await isProjectOwnerById(user.userId, Number(projectId));
     const isMember = await isProjectMember(user.userId, Number(projectId));
 
     if (!isOwner && !isMember) {
