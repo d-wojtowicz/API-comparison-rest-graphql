@@ -46,6 +46,7 @@ export const projectTypeDefs = gql`
   input UpdateProjectInput {
     project_name: String
     description: String
+    owner_id: Int
   }
 
   input AddProjectMemberInput {
