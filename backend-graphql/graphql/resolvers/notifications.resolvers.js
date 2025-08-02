@@ -67,11 +67,6 @@ export const notificationResolvers = {
 
   Mutation: {
     createNotification: async (_, { input }, { user, pubsub }) => {
-      if (!isSuperAdmin(user)) {
-        log.error(NAMESPACE, 'createNotification: User not authorized to create notifications');
-        throw new Error('Not authorized to create notifications');
-      }
-
       const notification = await prisma.notifications.create({
         data: {
           user_id: Number(input.user_id),

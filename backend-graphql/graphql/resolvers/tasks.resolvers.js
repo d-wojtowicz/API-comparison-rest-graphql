@@ -304,7 +304,7 @@ export const taskResolvers = {
         throw new Error('Task not found');
       }
 
-      if (!isAdmin(user) && !await isProjectOwner(user.userId, task.project_id, loaders)) {
+      if (!isSuperAdmin(user) && !await isProjectOwner(user.userId, task.project_id, loaders)) {
         log.error(NAMESPACE, 'deleteTask: User not authorized to delete this task');
         throw new Error('Not authorized to delete this task');
       }

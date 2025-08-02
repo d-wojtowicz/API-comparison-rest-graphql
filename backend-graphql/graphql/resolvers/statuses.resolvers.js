@@ -20,23 +20,12 @@ export const statusResolvers = {
 
 			return status;
 		},
-		// ADMIN ONLY
 		taskStatuses: async (_, __, { user, loaders }) => {
-			if (!isAdmin(user)) {
-				log.error(NAMESPACE, 'taskStatuses: User not authorized to view statuses');
-				throw new Error('Not authorized to view statuses');
-			}
-
 			return prisma.task_statuses.findMany();
 		}
 	},
 	Mutation: {
 		createStatus: async (_, { input }, { user }) => {
-			if (!isSuperAdmin(user)) {
-				log.error(NAMESPACE, 'createStatus: User not authorized to create statuses');
-				throw new Error('Not authorized to create statuses');
-			}
-
 			const { status_name } = input;
 
 			// Check if status with this name already exists
@@ -56,11 +45,6 @@ export const statusResolvers = {
 			});
 		},
 		updateStatus: async (_, { id, input }, { user }) => {
-			if (!isSuperAdmin(user)) {
-				log.error(NAMESPACE, 'updateStatus: User not authorized to update statuses');
-				throw new Error('Not authorized to update statuses');
-			}
-
 			const status = await prisma.task_statuses.findUnique({
 				where: { status_id: Number(id) }
 			});
@@ -95,11 +79,6 @@ export const statusResolvers = {
 			});
 		},
 		deleteStatus: async (_, { id }, { user }) => {
-			if (!isSuperAdmin(user)) {
-				log.error(NAMESPACE, 'deleteStatus: User not authorized to delete statuses');
-				throw new Error('Not authorized to delete statuses');
-			}
-
 			const status = await prisma.task_statuses.findUnique({
 				where: { status_id: Number(id) }
 			});

@@ -28,11 +28,6 @@ export const userResolvers = {
       return targetUser;
     },
     users: async (_, { input }, { user }) => {
-      if (!isAdmin(user)) {
-        log.error(NAMESPACE, 'users: User not authorized');
-        throw new Error('Not authorized');
-      }
-
       const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
       const paginationQuery = buildPaginationQuery(pagination, 'user_id');
       
@@ -43,11 +38,6 @@ export const userResolvers = {
       return createPaginatedResponse(users, pagination, 'user_id');
     },
     usersList: async (_, __, { user }) => {
-      if (!isAdmin(user)) {
-        log.error(NAMESPACE, 'usersList: User not authorized');
-        throw new Error('Not authorized');
-      }
-
       const users = await prisma.users.findMany();
 
       return users;
@@ -152,11 +142,6 @@ export const userResolvers = {
       return true;
     },
     updateUserRole: async (_, { id, role }, { user, loaders }) => {
-      if (!isAdmin(user)) {
-        log.error(NAMESPACE, 'updateUserRole: User not authorized');
-        throw new Error('Not authorized');
-      }
-
       const targetUser = await loaders.userLoader.load(Number(id));
 
       if (!targetUser) {
@@ -190,11 +175,6 @@ export const userResolvers = {
       });
     },
     deleteUser: async (_, { id }, { user, loaders }) => {
-      if (!isAdmin(user)) {
-        log.error(NAMESPACE, 'deleteUser: User not authorized');
-        throw new Error('Not authorized');
-      }
-
       const targetUser = await loaders.userLoader.load(Number(id));
 
       if (!targetUser) {

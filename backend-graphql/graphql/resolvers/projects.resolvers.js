@@ -35,11 +35,6 @@ export const projectResolvers = {
       return project;
     },
     projects: async (_, { input }, { user }) => {
-      if (!isAdmin(user)) {
-        log.error(NAMESPACE, 'projects: Not authorized to access all projects');
-        throw new Error('Not authorized');
-      }
-
       const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
       const paginationQuery = buildPaginationQuery(pagination, 'project_id');
       
@@ -50,11 +45,6 @@ export const projectResolvers = {
       return createPaginatedResponse(projects, pagination, 'project_id');
     },
     projectsList: async (_, __, { user, loaders }) => {
-      if (!isAdmin(user)) {
-        log.error(NAMESPACE, 'projectsList: Not authorized to access all projects');
-        throw new Error('Not authorized');
-      }
-
       const projects = await prisma.projects.findMany();
 
       return projects;
@@ -163,7 +153,7 @@ export const projectResolvers = {
         throw new Error('Project not found');
       }
 
-      if (!isProjectOwner(user, project) && !isAdmin(user)) {
+      if (!isProjectOwner(user, project) && !isSuperAdmin(user)) {
         log.error(NAMESPACE, 'updateProject: Not authorized to update project');
         throw new Error('Not authorized');
       }
@@ -202,7 +192,7 @@ export const projectResolvers = {
         throw new Error('Project not found');
       }
 
-      if (!isProjectOwner(user, project) && !isAdmin(user)) {
+      if (!isProjectOwner(user, project) && !isSuperAdmin(user)) {
         log.error(NAMESPACE, 'deleteProject: Not authorized to delete project');
         throw new Error('Not authorized');
       }
@@ -233,7 +223,7 @@ export const projectResolvers = {
         throw new Error('Project not found');
       }
 
-      if (!isProjectOwner(user, project) && !isAdmin(user)) {
+      if (!isProjectOwner(user, project) && !isSuperAdmin(user)) {
         log.error(NAMESPACE, 'addProjectMember: Not authorized to add members');
         throw new Error('Not authorized');
       }
@@ -264,7 +254,7 @@ export const projectResolvers = {
         throw new Error('Project not found');
       }
 
-      if (!isProjectOwner(user, project) && !isAdmin(user)) {
+      if (!isProjectOwner(user, project) && !isSuperAdmin(user)) {
         log.error(NAMESPACE, 'removeProjectMember: Not authorized to remove members');
         throw new Error('Not authorized');
       }
