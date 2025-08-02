@@ -20,11 +20,6 @@ const isAdmin = (user) => user?.role === 'admin' || user?.role === 'superadmin';
 export const projectResolvers = {
   Query: {
     project: async (_, { id }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'project: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const project = await loaders.projectLoader.load(Number(id));
 
       if (!project) {
@@ -40,11 +35,6 @@ export const projectResolvers = {
       return project;
     },
     projects: async (_, { input }, { user }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'projects: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       if (!isAdmin(user)) {
         log.error(NAMESPACE, 'projects: Not authorized to access all projects');
         throw new Error('Not authorized');
@@ -60,11 +50,6 @@ export const projectResolvers = {
       return createPaginatedResponse(projects, pagination, 'project_id');
     },
     projectsList: async (_, __, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'projectsList: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       if (!isAdmin(user)) {
         log.error(NAMESPACE, 'projectsList: Not authorized to access all projects');
         throw new Error('Not authorized');
@@ -75,11 +60,6 @@ export const projectResolvers = {
       return projects;
     },
     myProjects: async (_, { input }, { user }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'myProjects: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
       const paginationQuery = buildPaginationQuery(pagination, 'project_id');
       
@@ -113,11 +93,6 @@ export const projectResolvers = {
       return createPaginatedResponse(memberProjects, pagination, 'project_id');
     },
     myProjectsList: async (_, __, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'myProjectsList: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const memberProjects = await prisma.projects.findMany({
         where: {
           OR: [
@@ -138,11 +113,6 @@ export const projectResolvers = {
       return memberProjects;
     },
     projectMembers: async (_, { project_id }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'projectMembers: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const project = await loaders.projectLoader.load(Number(project_id));
 
       if (!project) {
@@ -160,11 +130,6 @@ export const projectResolvers = {
   },
   Mutation: {
     createProject: async (_, { input }, { user }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'createProject: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const { project_name, description } = input;
       const project = await prisma.projects.create({
         data: {
@@ -189,11 +154,6 @@ export const projectResolvers = {
       return project;
     },
     updateProject: async (_, { id, input }, { user, pubsub }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'updateProject: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const project = await prisma.projects.findUnique({
         where: { project_id: Number(id) }
       });
@@ -230,11 +190,6 @@ export const projectResolvers = {
       return updatedProject;
     },
     deleteProject: async (_, { id }, { user, loaders, pubsub }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'deleteProject: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const project = await prisma.projects.findUnique({
         where: { project_id: Number(id) },
         include: {
@@ -269,11 +224,6 @@ export const projectResolvers = {
       return true;
     },
     addProjectMember: async (_, { input }, { user, loaders, pubsub }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'addProjectMember: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const { project_id, user_id, role } = input;
 
       const project = await loaders.projectLoader.load(Number(project_id));
@@ -307,11 +257,6 @@ export const projectResolvers = {
       return member;
     },
     removeProjectMember: async (_, { user_id, project_id }, { user, loaders, pubsub }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'removeProjectMember: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const project = await loaders.projectLoader.load(Number(project_id));
 
       if (!project) {
@@ -364,8 +309,6 @@ export const projectResolvers = {
       return loaders.userLoader.load(parent.owner_id);
     },
     members: async (parent, _, { user, loaders }) => {
-      if (!user) return [];
-
       // Check if user has access to the project
       if (!isProjectOwner(user, parent) && !(await isProjectMember(user, parent.project_id, loaders)) && !isAdmin(user)) {
         return [];
@@ -374,8 +317,6 @@ export const projectResolvers = {
       return loaders.projectMembersByProjectLoader.load(parent.project_id);
     },
     tasks: async (parent, _, { user, loaders }) => {
-      if (!user) return [];
-
       // Check if user has access to the project
       if (!isProjectOwner(user, parent) && !(await isProjectMember(user, parent.project_id, loaders)) && !isAdmin(user)) {
         return [];

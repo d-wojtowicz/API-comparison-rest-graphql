@@ -31,11 +31,6 @@ const hasTaskAccess = async (user, taskId, loaders) => {
 export const commentResolvers = {
   Query: {
     taskComment: async (_, { id }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'taskComment: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const comment = await loaders.commentLoader.load(Number(id));
 
       if (!comment) {
@@ -51,11 +46,6 @@ export const commentResolvers = {
       return comment;
     },
     taskComments: async (_, { taskId }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'taskComments: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       if (!await hasTaskAccess(user, taskId, loaders) && !isAdmin(user)) {
         log.error(NAMESPACE, 'taskComments: User not authorized to view this task comments');
         throw new Error('Not authorized to view this task comments');
@@ -68,11 +58,6 @@ export const commentResolvers = {
   },
   Mutation: {
     createTaskComment: async (_, { input }, { user, loaders, pubsub }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'createTaskComment: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const { task_id, comment_text } = input;
 
       const task = await loaders.taskLoader.load(Number(task_id));
@@ -117,12 +102,8 @@ export const commentResolvers = {
       return comment;
     },
     updateTaskComment: async (_, { id, input }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'updateTaskComment: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const comment = await loaders.commentLoader.load(Number(id));
+      
       if (!comment) {
         log.error(NAMESPACE, 'updateTaskComment: Comment not found');
         throw new Error('Comment not found');
@@ -143,12 +124,8 @@ export const commentResolvers = {
       });
     },
     deleteTaskComment: async (_, { id }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'deleteTaskComment: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const comment = await loaders.commentLoader.load(Number(id));
+
       if (!comment) {
         log.error(NAMESPACE, 'deleteTaskComment: Comment not found');
         throw new Error('Comment not found');

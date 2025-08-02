@@ -47,11 +47,6 @@ const hasTaskAccess = async (user, task, loaders) => {
 export const taskResolvers = {
   Query: {
     task: async (_, { id }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'task: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const task = await loaders.taskLoader.load(Number(id));
 
       if (!task) {
@@ -59,7 +54,9 @@ export const taskResolvers = {
         throw new Error('Task not found');
       }
 
-      if (!await hasTaskAccess(user, task, loaders) && !isAdmin(user)) {
+      const hasAccess = await hasTaskAccess(user, task, loaders);
+
+      if (!hasAccess && !isAdmin(user)) {
         log.error(NAMESPACE, 'task: User not authorized to view this task');
         throw new Error('Not authorized to view this task');
       }
@@ -68,11 +65,6 @@ export const taskResolvers = {
     },
 
     tasksByProject: async (_, { projectId, input }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'tasksByProject: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       if (!await hasTaskAccess(user, { project_id: Number(projectId) }, loaders) && !isAdmin(user)) {
         log.error(NAMESPACE, 'tasksByProject: User not authorized to view tasks in this project');
         throw new Error('Not authorized to view tasks in this project');
@@ -98,11 +90,6 @@ export const taskResolvers = {
       return createPaginatedResponse(tasks, pagination, 'task_id');
     },
     tasksByProjectList: async (_, { projectId }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'tasksByProjectList: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       if (!await hasTaskAccess(user, { project_id: Number(projectId) }, loaders) && !isAdmin(user)) {
         log.error(NAMESPACE, 'tasksByProjectList: User not authorized to view tasks in this project');
         throw new Error('Not authorized to view tasks in this project');
@@ -114,11 +101,6 @@ export const taskResolvers = {
     },
 
     tasksByAssignee: async (_, { assigneeId, input }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'tasksByAssignee: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       // Users can only view their own assigned tasks unless they're admin
       if (!isAdmin(user) && !isSelf(user, Number(assigneeId))) {
         log.error(NAMESPACE, 'tasksByAssignee: User not authorized to view these tasks');
@@ -145,11 +127,6 @@ export const taskResolvers = {
       return createPaginatedResponse(tasks, pagination, 'task_id');
     },
     tasksByAssigneeList: async (_, { assigneeId }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'tasksByAssigneeList: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       // Users can only view their own assigned tasks unless they're admin
       if (!isAdmin(user) && !isSelf(user, Number(assigneeId))) {
         log.error(NAMESPACE, 'tasksByAssigneeList: User not authorized to view these tasks');
@@ -162,11 +139,6 @@ export const taskResolvers = {
     },
 
     tasksByStatus: async (_, { statusId }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'tasksByStatus: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const tasks = await loaders.tasksByStatusLoader.load(Number(statusId));
       if (!tasks.length) return [];
 
@@ -201,11 +173,6 @@ export const taskResolvers = {
 
   Mutation: {
     createTask: async (_, { input }, { user, loaders, pubsub }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'createTask: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const { project_id, status_id, assignee_id, ...otherFields } = input;
 
       // Check if user has access to the project
@@ -250,11 +217,6 @@ export const taskResolvers = {
     },
 
     updateTask: async (_, { id, input }, { user, loaders, pubsub }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'updateTask: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const task = await loaders.taskLoader.load(Number(id));
       if (!task) {
         log.error(NAMESPACE, 'updateTask: Task not found');
@@ -336,11 +298,6 @@ export const taskResolvers = {
       });
     },
     deleteTask: async (_, { id }, { user, loaders, pubsub }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'deleteTask: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const task = await loaders.taskLoader.load(Number(id));
       if (!task) {
         log.error(NAMESPACE, 'deleteTask: Task not found');
@@ -373,11 +330,6 @@ export const taskResolvers = {
     },
 
     assignTask: async (_, { id, assigneeId }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'assignTask: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const task = await loaders.taskLoader.load(Number(id));
       if (!task) {
         log.error(NAMESPACE, 'assignTask: Task not found');
@@ -405,11 +357,6 @@ export const taskResolvers = {
     },
 
     updateTaskStatus: async (_, { id, statusId }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'updateTaskStatus: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const task = await loaders.taskLoader.load(Number(id));
       if (!task) {
         log.error(NAMESPACE, 'updateTaskStatus: Task not found');
@@ -449,11 +396,6 @@ export const taskResolvers = {
       return loaders.userLoader.load(parent.assignee_id);
     },
     comments: async (parent, _, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'Task.comments: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       // Check if user has access to the task
       if (!await hasTaskAccess(user, parent, loaders) && !isAdmin(user)) {
         log.error(NAMESPACE, 'Task.comments: Not authorized to view task comments');
@@ -463,11 +405,6 @@ export const taskResolvers = {
       return loaders.taskCommentsLoader.load(parent.task_id);
     },
     attachments: async (parent, _, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'Task.attachments: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       // Check if user has access to the task
       if (!await hasTaskAccess(user, parent, loaders) && !isAdmin(user)) {
         log.error(NAMESPACE, 'Task.attachments: Not authorized to view task attachments');

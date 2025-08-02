@@ -11,11 +11,6 @@ const isAdmin = (user) => user?.role === 'admin' || isSuperAdmin(user);
 export const statusResolvers = {
 	Query: {
 		taskStatus: async (_, { id }, { user, loaders }) => {
-			if (!user) {
-				log.error(NAMESPACE, 'taskStatus: User not authenticated');
-				throw new Error('Not authenticated');
-			}
-
 			const status = await loaders.statusLoader.load(Number(id));
 
 			if (!status) {
@@ -27,11 +22,6 @@ export const statusResolvers = {
 		},
 		// ADMIN ONLY
 		taskStatuses: async (_, __, { user, loaders }) => {
-			if (!user) {
-				log.error(NAMESPACE, 'taskStatuses: User not authenticated');
-				throw new Error('Not authenticated');
-			}
-
 			if (!isAdmin(user)) {
 				log.error(NAMESPACE, 'taskStatuses: User not authorized to view statuses');
 				throw new Error('Not authorized to view statuses');
@@ -42,11 +32,6 @@ export const statusResolvers = {
 	},
 	Mutation: {
 		createStatus: async (_, { input }, { user }) => {
-			if (!user) {
-				log.error(NAMESPACE, 'createStatus: User not authenticated');
-				throw new Error('Not authenticated');
-			}
-
 			if (!isSuperAdmin(user)) {
 				log.error(NAMESPACE, 'createStatus: User not authorized to create statuses');
 				throw new Error('Not authorized to create statuses');
@@ -71,11 +56,6 @@ export const statusResolvers = {
 			});
 		},
 		updateStatus: async (_, { id, input }, { user }) => {
-			if (!user) {
-				log.error(NAMESPACE, 'updateStatus: User not authenticated');
-				throw new Error('Not authenticated');
-			}
-
 			if (!isSuperAdmin(user)) {
 				log.error(NAMESPACE, 'updateStatus: User not authorized to update statuses');
 				throw new Error('Not authorized to update statuses');
@@ -115,11 +95,6 @@ export const statusResolvers = {
 			});
 		},
 		deleteStatus: async (_, { id }, { user }) => {
-			if (!user) {
-				log.error(NAMESPACE, 'deleteStatus: User not authenticated');
-				throw new Error('Not authenticated');
-			}
-
 			if (!isSuperAdmin(user)) {
 				log.error(NAMESPACE, 'deleteStatus: User not authorized to delete statuses');
 				throw new Error('Not authorized to delete statuses');
@@ -153,11 +128,6 @@ export const statusResolvers = {
 	},
 	TaskStatus: {
 		tasks: async (parent, _, { user, loaders }) => {
-			if (!user) {
-				log.error(NAMESPACE, 'tasks: User not authenticated');
-				throw new Error('Not authenticated');
-			}
-
 			// For admin/superadmin, return all tasks
 			if (isAdmin(user)) {
 				return loaders.tasksByStatusLoader.load(parent.status_id);

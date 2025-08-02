@@ -13,11 +13,6 @@ const isSuperAdmin = (user) => user?.role === 'superadmin';
 export const notificationResolvers = {
   Query: {
     myNotifications: async (_, { input }, { user }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'myNotifications: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const pagination = parsePaginationInput(input, { defaultLimit: 20, maxLimit: 100 });
       const paginationQuery = buildPaginationQuery(pagination, 'notification_id');
       
@@ -38,22 +33,12 @@ export const notificationResolvers = {
       return createPaginatedResponse(notifications, pagination, 'notification_id');
     },
     myNotificationsList: async (_, __, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'myNotificationsList: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const myNotifications = await loaders.myNotificationsLoader.load(user.userId);
 
       return myNotifications;
     },
 
     unreadNotificationsCount: async (_, __, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'unreadNotificationsCount: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       return prisma.notifications.count({
         where: {
           user_id: user.userId,
@@ -63,11 +48,6 @@ export const notificationResolvers = {
     },
 
     notification: async (_, { id }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'notification: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const notification = await loaders.notificationLoader.load(Number(id));
 
       if (!notification) {
@@ -87,11 +67,6 @@ export const notificationResolvers = {
 
   Mutation: {
     createNotification: async (_, { input }, { user, pubsub }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'createNotification: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       if (!isSuperAdmin(user)) {
         log.error(NAMESPACE, 'createNotification: User not authorized to create notifications');
         throw new Error('Not authorized to create notifications');
@@ -117,11 +92,6 @@ export const notificationResolvers = {
     },
 
     updateNotification: async (_, { id, input }, { user, loaders, pubsub }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'updateNotification: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const notification = await loaders.notificationLoader.load(Number(id));
 
       if (!notification) {
@@ -154,11 +124,6 @@ export const notificationResolvers = {
     },
 
     markAllNotificationsAsRead: async (_, __, { user }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'markAllNotificationsAsRead: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       await prisma.notifications.updateMany({
         where: {
           user_id: user.userId,
@@ -173,11 +138,6 @@ export const notificationResolvers = {
     },
 
     deleteNotification: async (_, { id }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'deleteNotification: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const notification = await loaders.notificationLoader.load(Number(id));
 
       if (!notification) {

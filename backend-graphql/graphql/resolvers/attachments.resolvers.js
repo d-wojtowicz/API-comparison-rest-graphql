@@ -30,11 +30,6 @@ const hasTaskAccess = async (user, taskId, loaders) => {
 export const attachmentResolvers = {
   Query: {
     taskAttachment: async (_, { id }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'taskAttachment: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const attachment = await loaders.attachmentLoader.load(Number(id));
 
       if (!attachment) {
@@ -50,17 +45,21 @@ export const attachmentResolvers = {
       return attachment;
     },
     taskAttachmentsByTask: async (_, { taskId }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'taskAttachmentsByTask: User not authenticated');
-        throw new Error('Not authenticated');
-      }
+      const task = await loaders.taskLoader.load(Number(taskId));
       
-      const taskAttachments = await loaders.taskAttachmentsLoader.load(Number(taskId)); 
+      if (!task) {
+        log.error(NAMESPACE, 'taskAttachmentsByTask: Task not found');
+        throw new Error('Task not found');
+      }
 
-      if (!await hasTaskAccess(user, taskId, loaders) && !isAdmin(user)) {
+      const hasAccess = await hasTaskAccess(user, task.task_id, loaders);
+      
+      if (!hasAccess && !isAdmin(user)) {
         log.error(NAMESPACE, 'taskAttachmentsByTask: User not authorized to view these attachments');
         throw new Error('Not authorized to view these attachments');
       }
+
+      const taskAttachments = await loaders.taskAttachmentsLoader.load(Number(taskId));
 
       return taskAttachments;
     }
@@ -68,11 +67,6 @@ export const attachmentResolvers = {
 
   Mutation: {
     createTaskAttachment: async (_, { input }, { user, loaders, pubsub }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'createTaskAttachment: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       if (!await hasTaskAccess(user, input.task_id, loaders) && !isAdmin(user)) {
         log.error(NAMESPACE, 'createTaskAttachment: User not authorized to add attachments to this task');
         throw new Error('Not authorized to add attachments to this task');
@@ -108,12 +102,8 @@ export const attachmentResolvers = {
     },
 
     updateTaskAttachment: async (_, { id, input }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'updateTaskAttachment: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const attachment = await loaders.attachmentLoader.load(Number(id));
+
       if (!attachment) {
         log.error(NAMESPACE, 'updateTaskAttachment: Attachment not found');
         throw new Error('Attachment not found');
@@ -133,12 +123,8 @@ export const attachmentResolvers = {
     },
 
     deleteTaskAttachment: async (_, { id }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'deleteTaskAttachment: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const attachment = await loaders.attachmentLoader.load(Number(id));
+      
       if (!attachment) {
         log.error(NAMESPACE, 'deleteTaskAttachment: Attachment not found');
         throw new Error('Attachment not found');

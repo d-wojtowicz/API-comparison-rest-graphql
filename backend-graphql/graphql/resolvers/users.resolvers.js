@@ -15,18 +15,9 @@ const isAdmin = (user) => user?.role === 'admin' || isSuperAdmin(user);
 export const userResolvers = {
   Query: {
     me: async (_, __, { user }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'me: User not authenticated');
-        throw new Error('Not authenticated');
-      }
       return prisma.users.findUnique({ where: { user_id: user.userId } });
     },
     user: async (_, { id }, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'user: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const targetUser = await loaders.userLoader.load(Number(id));
 
       if (!targetUser) {
@@ -37,11 +28,6 @@ export const userResolvers = {
       return targetUser;
     },
     users: async (_, { input }, { user }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'users: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       if (!isAdmin(user)) {
         log.error(NAMESPACE, 'users: User not authorized');
         throw new Error('Not authorized');
@@ -57,11 +43,6 @@ export const userResolvers = {
       return createPaginatedResponse(users, pagination, 'user_id');
     },
     usersList: async (_, __, { user }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'usersList: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-      
       if (!isAdmin(user)) {
         log.error(NAMESPACE, 'usersList: User not authorized');
         throw new Error('Not authorized');
@@ -142,11 +123,6 @@ export const userResolvers = {
       };
     },
     changePassword: async (_, { input }, { user }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'changePassword: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       const { oldPassword, newPassword } = input;
       const dbUser = await prisma.users.findUnique({
         where: { user_id: user.userId }
@@ -246,11 +222,6 @@ export const userResolvers = {
   },
   User: {
     memberOf: async (parent, _, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'User.memberOf: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-      
       // Users can only see their own project memberships unless they're admin
       if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
         log.error(NAMESPACE, 'User.memberOf: Not authorized to view these project memberships');
@@ -260,11 +231,6 @@ export const userResolvers = {
       return loaders.projectMembersByUserLoader.load(parent.user_id);
     },
     projects: async (parent, _, { user, loaders }) => {
-      if (!user) {
-        log.error(NAMESPACE, 'User.projects: User not authenticated');
-        throw new Error('Not authenticated');
-      }
-      
       // Users can only see their own projects unless they're admin
       if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
         return [];
@@ -292,10 +258,6 @@ export const userResolvers = {
       return uniqueProjects;
     },
     notifications: async (parent, _, { user, loaders }) => {
-      if (!user) {
-        return [];
-      }
-      
       // Users can only see their own notifications unless they're admin
       if (!isSuperAdmin(user) && !isSelf(user, parent.user_id)) {
         return [];
@@ -304,10 +266,6 @@ export const userResolvers = {
       return loaders.notificationsByUserLoader.load(parent.user_id);
     },
     tasks: async (parent, _, { user, loaders }) => {
-      if (!user) {
-        return [];
-      }
-      
       // Users can only see their own tasks unless they're admin
       if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
         return [];
@@ -316,10 +274,6 @@ export const userResolvers = {
       return loaders.tasksByAssigneeLoader.load(parent.user_id);
     },
     comments: async (parent, _, { user, loaders }) => {
-      if (!user) {
-        return [];
-      }
-      
       // Users can only see their own comments unless they're admin
       if (!isAdmin(user) && !isSelf(user, parent.user_id)) {
         return [];
