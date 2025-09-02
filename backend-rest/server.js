@@ -7,7 +7,7 @@ import cors from 'cors';
 
 import CONFIG from './config/config.js';
 import log from './config/logging.js';
-import { rateLimitMiddleware } from './middleware/rateLimit.middleware.js';
+// import { rateLimitMiddleware } from './middleware/rateLimit.middleware.js';
 import userRoutesV1 from './rest/routes/v1/users.routes.js';
 import userRoutesV2 from './rest/routes/v2/users.routes.js';
 import statusRoutes from './rest/routes/v1/statuses.routes.js';
@@ -42,7 +42,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(compression());
-app.use(rateLimitMiddleware);
+// app.use(rateLimitMiddleware);
 
 app.use((req, res, next) => {
   log.info(NAMESPACE, `METHOD: [${req.method}] - URL: [${req.url}] - IP: [${req.socket.remoteAddress}]`);

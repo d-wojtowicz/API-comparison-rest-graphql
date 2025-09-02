@@ -1,0 +1,24 @@
+{
+  "test_name": "REST Project Load Test",
+  "endpoint": "/api/v1/projects/{id}",
+  "project_id": 1,
+  "test_duration_ms": 205926.1517,
+  "total_requests": 57710,
+  "total_errors": 0,
+  "error_rate": "0.00%",
+  "response_times": {
+    "average": "305.45ms",
+    "min": "0.50ms",
+    "max": "1380.09ms",
+    "p90": "817.32ms",
+    "p95": "968.80ms"
+  },
+  "throughput": {
+    "requests_per_second": "280.25"
+  },
+  "concurrent_users": {
+    "max": 1000,
+    "avg": "N/A"
+  },
+  "timestamp": "2025-09-02T18:41:26.089Z"
+}
