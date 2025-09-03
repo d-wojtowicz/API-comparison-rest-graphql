@@ -11,3 +11,8 @@ tmp/
 # Backend
 generated/
 generated/prisma/
+
+
+# k6 tests
+__pycache__
+venv

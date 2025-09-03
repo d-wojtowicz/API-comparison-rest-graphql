@@ -3,6 +3,20 @@ import { check, sleep } from 'k6';
 
 const VUs = 500;
 
+// Stage tracking utility - synchronized with k6 stages
+let testStartTime = Date.now();
+
+function getCurrentStage() {
+  const elapsed = Date.now() - testStartTime;
+  
+  // Match the actual k6 stages configuration
+  if (elapsed < 10000) {
+    return 1; // Stage 1: Ramp up to 500 VUs (0-10s)
+  } else {
+    return 2; // Stage 2: Hold 500 VUs (10s+)
+  }
+}
+
 
 // Konfiguracja testu
 export const options = {
@@ -44,7 +58,17 @@ export default function () {
     }
   });
 
-  const response = http.post(url, payload, { headers });
+  // Get current stage and add tags
+  const stage = getCurrentStage();
+  
+  const response = http.post(url, payload, { 
+    headers,
+    tags: {
+      stage: stage.toString(),
+      stage_name: `stage_${stage}`,
+      api_type: 'graphql'
+    }
+  });
 
   check(response, {
     'status is 200': (r) => r.status === 200,
@@ -108,7 +132,7 @@ export function handleSummary(data) {
     timestamp: new Date().toISOString(),
   };
 
-  const fileName = `graphql_1_${VUs}-VUs_get_project_info_summary.json`;
+  const fileName = `../performance-analytics/summary/graphql/1_get_project_info.json`;
   return {
     [fileName]: JSON.stringify(summary, null, 2),
   };
