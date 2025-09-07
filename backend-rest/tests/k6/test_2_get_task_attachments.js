@@ -55,7 +55,7 @@ export const options = {
 
 const BASE_URL = 'http://[::1]:4001';
 const TASK_ID = 1;
-const AUTH_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWxpY2Uuc21pdGhAZXhhbXBsZS5jb20iLCJyb2xlIjoic3VwZXJhZG1pbiIsImlhdCI6MTc1NzI0OTM3NiwiZXhwIjoxNzU3MjUyOTc2fQ.Tytmj2JhxIDVDdROgd8i6aUZNZoSgW6qonnSnpjb_Z8';
+const AUTH_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWxpY2Uuc21pdGhAZXhhbXBsZS5jb20iLCJyb2xlIjoic3VwZXJhZG1pbiIsImlhdCI6MTc1NzI1NTE1OSwiZXhwIjoxNzU3MjU4NzU5fQ.NtQTUa1Zz9S59LIyT7Gc8_Os80K9L7AfzMLFkhJ7q74';
 
 export default function () {
   const url = `${BASE_URL}/api/v1/tasks/${TASK_ID}/attachments`;

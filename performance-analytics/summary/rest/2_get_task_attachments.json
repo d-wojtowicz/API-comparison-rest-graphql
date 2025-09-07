@@ -1,0 +1,24 @@
+{
+  "test_name": "REST Task Attachments Load Test",
+  "endpoint": "/api/v1/tasks/{id}/attachments",
+  "task_id": 1,
+  "test_duration_ms": 901176.8748,
+  "total_requests": 243709,
+  "total_errors": 0,
+  "error_rate": "0.00%",
+  "response_times": {
+    "average": "541.32ms",
+    "min": "0.50ms",
+    "max": "1975.31ms",
+    "p90": "1398.00ms",
+    "p95": "1479.72ms"
+  },
+  "throughput": {
+    "requests_per_second": "270.43"
+  },
+  "concurrent_users": {
+    "max": 1000,
+    "avg": "N/A"
+  },
+  "timestamp": "2025-09-07T14:41:46.357Z"
+}
