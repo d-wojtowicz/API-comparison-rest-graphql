@@ -39,6 +39,7 @@ class K6ChartGenerator:
     def load_csv_data(self, csv_file):
         """
         Load and preprocess k6 CSV data with stage information from tags.
+        Filters data to only include http_req_duration metrics.
         
         Args:
             csv_file (str): Path to CSV file
@@ -52,14 +53,18 @@ class K6ChartGenerator:
             # Convert timestamp to datetime
             df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
             
-            # Filter out non-http metrics for cleaner visualization
-            http_metrics = df[df['metric_name'].str.startswith('http_')]
+            # Filter to only include http_req_duration metrics
+            duration_metrics = df[df['metric_name'] == 'http_req_duration']
+            
+            if duration_metrics.empty:
+                print(f"Warning: No http_req_duration metrics found in {csv_file}")
+                return pd.DataFrame()
             
             # Extract stage information from tags if available
-            if 'extra_tags' in http_metrics.columns and not http_metrics['extra_tags'].isna().all():
-                http_metrics = self._extract_stage_from_tags(http_metrics)
+            if 'extra_tags' in duration_metrics.columns and not duration_metrics['extra_tags'].isna().all():
+                duration_metrics = self._extract_stage_from_tags(duration_metrics)
             
-            return http_metrics
+            return duration_metrics
             
         except Exception as e:
             print(f"Error loading CSV file {csv_file}: {e}")
@@ -111,12 +116,63 @@ class K6ChartGenerator:
         
         return df
     
+    def _format_relative_time(self, seconds):
+        """
+        Format seconds into a readable time format.
+        
+        Args:
+            seconds (float): Time in seconds
+            
+        Returns:
+            str: Formatted time string (e.g., "0s", "30s", "1m 20s", "2h 15m")
+        """
+        if seconds < 60:
+            return f"{int(seconds)}s"
+        elif seconds < 3600:
+            minutes = int(seconds // 60)
+            secs = int(seconds % 60)
+            return f"{minutes}m {secs}s" if secs > 0 else f"{minutes}m"
+        else:
+            hours = int(seconds // 3600)
+            minutes = int((seconds % 3600) // 60)
+            return f"{hours}h {minutes}m" if minutes > 0 else f"{hours}h"
+    
+    def _determine_api_type_from_data(self, df):
+        """
+        Determine API type (REST or GraphQL) from the data itself.
+        
+        Args:
+            df (pd.DataFrame): DataFrame with stage information
+            
+        Returns:
+            str: 'REST' or 'GraphQL'
+        """
+        # Check if we have api_type column from tags
+        if 'api_type' in df.columns and not df['api_type'].isna().all():
+            api_types = df['api_type'].unique()
+            # Return the most common API type
+            from collections import Counter
+            api_type_counts = Counter(api_types)
+            most_common = api_type_counts.most_common(1)[0][0]
+            return most_common.upper()
+        
+        # Check URLs for API type indicators
+        if 'url' in df.columns and not df['url'].isna().all():
+            urls = df['url'].dropna().astype(str)
+            if any('/graphql' in url.lower() for url in urls):
+                return 'GraphQL'
+            elif any('/api/' in url.lower() for url in urls):
+                return 'REST'
+        
+        # Default to REST if cannot determine
+        return 'REST'
+    
     def print_stage_summary(self, df):
         """
         Print a summary of detected stages from tags.
         
         Args:
-            df (pd.DataFrame): DataFrame with stage information
+            df (pd.DataFrame): DataFrame with stage information (filtered for http_req_duration)
         """
         if df.empty:
             return
@@ -127,14 +183,47 @@ class K6ChartGenerator:
             return
         
         print("\n=== Stage Analysis (from k6 tags) ===")
-        stage_summary = df.groupby('stage').agg({
-            'timestamp': ['min', 'max', 'count'],
-            'metric_value': ['mean', 'min', 'max']
-        }).round(2)
         
-        stage_summary.columns = ['Start Time', 'End Time', 'Data Points', 'Avg Response (ms)', 'Min Response (ms)', 'Max Response (ms)']
+        # Calculate detailed statistics for each stage
+        stage_stats = []
+        for stage in sorted(df['stage'].unique()):
+            stage_data = df[df['stage'] == stage]
+            
+            # Basic stats
+            start_time = stage_data['timestamp'].min()
+            end_time = stage_data['timestamp'].max()
+            count = len(stage_data)
+            mean_resp = stage_data['metric_value'].mean()
+            min_resp = stage_data['metric_value'].min()
+            max_resp = stage_data['metric_value'].max()
+            
+            # Percentiles
+            p90 = stage_data['metric_value'].quantile(0.90)
+            p95 = stage_data['metric_value'].quantile(0.95)
+            
+            # RPS calculation
+            duration = (end_time - start_time).total_seconds()
+            rps = count / duration if duration > 0 else 0
+            
+            stage_stats.append({
+                'Stage': stage,
+                'Start Time': start_time,
+                'End Time': end_time,
+                'Data Points': count,
+                'Avg Response (ms)': round(mean_resp, 2),
+                'Min Response (ms)': round(min_resp, 2),
+                'Max Response (ms)': round(max_resp, 2),
+                'P90 (ms)': round(p90, 2),
+                'P95 (ms)': round(p95, 2),
+                'RPS': round(rps, 2)
+            })
         
-        print(stage_summary)
+        # Convert to DataFrame for nice formatting
+        import pandas as pd
+        stage_summary_df = pd.DataFrame(stage_stats)
+        stage_summary_df = stage_summary_df.set_index('Stage')
+        
+        print(stage_summary_df)
         print(f"\nTotal stages detected: {df['stage'].nunique()}")
         print(f"Total test duration: {(df['timestamp'].max() - df['timestamp'].min()).total_seconds():.1f} seconds")
         
@@ -148,11 +237,11 @@ class K6ChartGenerator:
         Create a line chart for HTTP response times over time with stage information.
         
         Args:
-            df (pd.DataFrame): Processed k6 data with stage information
+            df (pd.DataFrame): Processed k6 data with stage information (already filtered for http_req_duration)
             output_file (str): Output file path (optional)
         """
-        # Filter for response duration data
-        response_data = df[df['metric_name'] == 'http_req_duration']
+        # Data is already filtered for http_req_duration in load_csv_data
+        response_data = df
         
         if response_data.empty:
             print("No response duration data found")
@@ -181,7 +270,9 @@ class K6ChartGenerator:
                 if i > 0:  # Don't draw line for first stage
                     plt.axvline(x=timestamp, color='black', linestyle=':', alpha=0.7, linewidth=2)
             
-            plt.title('Response Time Over Time', fontsize=16, fontweight='bold')
+            # Determine API type for title
+            api_type = self._determine_api_type_from_data(response_data)
+            plt.title(f'{api_type} - Response Time Over Time', fontsize=16, fontweight='bold')
             
             # Add stage statistics
             stage_info = []
@@ -189,26 +280,56 @@ class K6ChartGenerator:
                 stage_data = response_data[response_data['stage'] == stage]
                 stage_mean = stage_data['metric_value'].mean()
                 stage_count = len(stage_data)
-                stage_info.append(f'Stage {stage}: {stage_mean:.1f}ms avg, {stage_count} requests')
+                
+                # Calculate percentiles
+                p90 = stage_data['metric_value'].quantile(0.90)
+                p95 = stage_data['metric_value'].quantile(0.95)
+                
+                # Calculate RPS (Requests Per Second)
+                stage_duration = (stage_data['timestamp'].max() - stage_data['timestamp'].min()).total_seconds()
+                rps = stage_count / stage_duration if stage_duration > 0 else 0
+                
+                stage_info.append(f'Stage {stage}: AVG {stage_mean:.1f}ms, P90 {p90:.1f}ms, P95 {p95:.1f}ms, Requests {stage_count}, RPS {rps:.1f}')
             
             info_text = '\n'.join(stage_info)
             plt.text(0.02, 0.98, info_text, transform=plt.gca().transAxes, 
                     verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8),
-                    fontsize=9)
+                    fontsize=11)
             
         else:
             # Plot without stage information
             plt.plot(response_data['timestamp'], response_data['metric_value'], 
                     linewidth=1, alpha=0.7, color='#2E86AB')
-            plt.title('HTTP Response Time Over Time', fontsize=16, fontweight='bold')
+            # Determine API type for title
+            api_type = self._determine_api_type_from_data(response_data)
+            plt.title(f'{api_type} - Response Time Over Time', fontsize=16, fontweight='bold')
         
         plt.xlabel('Time', fontsize=12)
         plt.ylabel('Response Time (ms)', fontsize=12)
         
-        # Format x-axis
-        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-        plt.gca().xaxis.set_major_locator(mdates.SecondLocator(interval=10))
-        plt.xticks(rotation=45)
+        # Convert timestamps to relative time for x-axis labels
+        start_time = response_data['timestamp'].min()
+        end_time = response_data['timestamp'].max()
+        duration = (end_time - start_time).total_seconds()
+        
+        # Set appropriate number of ticks based on duration
+        if duration <= 60:  # Less than 1 minute
+            num_ticks = 7
+        elif duration <= 300:  # Less than 5 minutes
+            num_ticks = 8
+        elif duration <= 1800:  # Less than 30 minutes
+            num_ticks = 10
+        else:  # More than 30 minutes
+            num_ticks = 12
+        
+        # Create evenly spaced timestamps
+        tick_timestamps = pd.date_range(start=start_time, end=end_time, periods=num_ticks)
+        tick_relative_times = (tick_timestamps - start_time).total_seconds()
+        
+        # Format x-axis with relative time labels
+        ax = plt.gca()
+        ax.set_xticks(tick_timestamps)
+        ax.set_xticklabels([self._format_relative_time(t) for t in tick_relative_times], rotation=45)
         
         # Add overall statistics
         mean_time = response_data['metric_value'].mean()
