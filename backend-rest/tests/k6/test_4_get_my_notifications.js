@@ -36,7 +36,7 @@ function getCurrentStage() {
 }
 
 // Konfiguracja testu
-export const options = {
+export const options = {  
   stages: [
     { duration: '30s', target: 50 },
     { duration: '2m', target: 50 },
@@ -54,10 +54,10 @@ export const options = {
 };
 
 const BASE_URL = 'http://[::1]:4001';
-const PROJECT_ID = 1;
 const AUTH_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWxpY2Uuc21pdGhAZXhhbXBsZS5jb20iLCJyb2xlIjoic3VwZXJhZG1pbiIsImlhdCI6MTc1NzI0OTM3NiwiZXhwIjoxNzU3MjUyOTc2fQ.Tytmj2JhxIDVDdROgd8i6aUZNZoSgW6qonnSnpjb_Z8';
+
 export default function () {
-  const url = `${BASE_URL}/api/v1/projects/${PROJECT_ID}`;
+  const url = `${BASE_URL}/api/v1/notifications/my`;
   
   const headers = {
     'authorization': `Bearer ${AUTH_TOKEN}`,
@@ -79,10 +79,44 @@ export default function () {
   check(response, {
     'status is 200': (r) => r.status === 200,
     'response time < 1s': (r) => r.timings.duration < 1000,
-    'correct project returned': (r) => {
+    'response has pagination structure': (r) => {
       try {
         const body = JSON.parse(r.body);
-        return body.project_id === PROJECT_ID;
+        return body.hasOwnProperty('data') && 
+               body.hasOwnProperty('pagination') &&
+               Array.isArray(body.data);
+      } catch (e) {
+        return false;
+      }
+    },
+    'notifications have required fields': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        if (!body.data || !Array.isArray(body.data)) return false;
+        
+        // If no notifications, that's valid
+        if (body.data.length === 0) return true;
+        
+        // Check first notification has required fields
+        const notification = body.data[0];
+        return notification.hasOwnProperty('notification_id') && 
+               notification.hasOwnProperty('user_id') && 
+               notification.hasOwnProperty('title') &&
+               notification.hasOwnProperty('message') &&
+               notification.hasOwnProperty('is_read') &&
+               notification.hasOwnProperty('created_at');
+      } catch (e) {
+        return false;
+      }
+    },
+    'pagination has required fields': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        if (!body.pagination) return false;
+        
+        return body.pagination.hasOwnProperty('hasNextPage') && 
+               body.pagination.hasOwnProperty('hasPreviousPage') &&
+               body.pagination.hasOwnProperty('totalCount') !== undefined;
       } catch (e) {
         return false;
       }
@@ -106,9 +140,8 @@ export function handleSummary(data) {
   };
 
   const summary = {
-    test_name: 'REST Project Load Test',
-    endpoint: `/api/v1/projects/{id}`,
-    project_id: PROJECT_ID,
+    test_name: 'REST My Notifications Load Test',
+    endpoint: `/api/v1/notifications/my`,
     test_duration_ms: data.state?.testRunDurationMs || 0,
     total_requests: data.metrics?.http_reqs?.values?.count || 0,
     total_errors: data.metrics?.http_req_failed?.values?.count || 0,
@@ -130,7 +163,7 @@ export function handleSummary(data) {
     timestamp: new Date().toISOString(),
   };
 
-  const fileName = `../performance-analytics/summary/rest/1_get_project_info.json`;
+  const fileName = `../performance-analytics/summary/rest/4_get_my_notifications.json`;
   return {
     [fileName]: JSON.stringify(summary, null, 2),
   };

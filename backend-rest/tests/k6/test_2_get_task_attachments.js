@@ -36,7 +36,7 @@ function getCurrentStage() {
 }
 
 // Konfiguracja testu
-export const options = {
+export const options = {  
   stages: [
     { duration: '30s', target: 50 },
     { duration: '2m', target: 50 },
@@ -54,10 +54,11 @@ export const options = {
 };
 
 const BASE_URL = 'http://[::1]:4001';
-const PROJECT_ID = 1;
+const TASK_ID = 1;
 const AUTH_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWxpY2Uuc21pdGhAZXhhbXBsZS5jb20iLCJyb2xlIjoic3VwZXJhZG1pbiIsImlhdCI6MTc1NzI0OTM3NiwiZXhwIjoxNzU3MjUyOTc2fQ.Tytmj2JhxIDVDdROgd8i6aUZNZoSgW6qonnSnpjb_Z8';
+
 export default function () {
-  const url = `${BASE_URL}/api/v1/projects/${PROJECT_ID}`;
+  const url = `${BASE_URL}/api/v1/tasks/${TASK_ID}/attachments`;
   
   const headers = {
     'authorization': `Bearer ${AUTH_TOKEN}`,
@@ -79,10 +80,28 @@ export default function () {
   check(response, {
     'status is 200': (r) => r.status === 200,
     'response time < 1s': (r) => r.timings.duration < 1000,
-    'correct project returned': (r) => {
+    'response is array': (r) => {
       try {
         const body = JSON.parse(r.body);
-        return body.project_id === PROJECT_ID;
+        return Array.isArray(body);
+      } catch (e) {
+        return false;
+      }
+    },
+    'attachments have required fields': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        if (!Array.isArray(body)) return false;
+        
+        // If no attachments, that's valid
+        if (body.length === 0) return true;
+        
+        // Check first attachment has required fields
+        const attachment = body[0];
+        return attachment.hasOwnProperty('attachment_id') && 
+               attachment.hasOwnProperty('task_id') && 
+               attachment.hasOwnProperty('file_name') &&
+               attachment.hasOwnProperty('uploaded_at');
       } catch (e) {
         return false;
       }
@@ -106,9 +125,9 @@ export function handleSummary(data) {
   };
 
   const summary = {
-    test_name: 'REST Project Load Test',
-    endpoint: `/api/v1/projects/{id}`,
-    project_id: PROJECT_ID,
+    test_name: 'REST Task Attachments Load Test',
+    endpoint: `/api/v1/tasks/{id}/attachments`,
+    task_id: TASK_ID,
     test_duration_ms: data.state?.testRunDurationMs || 0,
     total_requests: data.metrics?.http_reqs?.values?.count || 0,
     total_errors: data.metrics?.http_req_failed?.values?.count || 0,
@@ -130,7 +149,7 @@ export function handleSummary(data) {
     timestamp: new Date().toISOString(),
   };
 
-  const fileName = `../performance-analytics/summary/rest/1_get_project_info.json`;
+  const fileName = `../performance-analytics/summary/rest/2_get_task_attachments.json`;
   return {
     [fileName]: JSON.stringify(summary, null, 2),
   };

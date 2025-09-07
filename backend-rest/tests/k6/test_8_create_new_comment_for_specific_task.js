@@ -1,5 +1,6 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
+import { randomString } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 // Stage tracking utility - synchronized with k6 stages
 let testStartTime = Date.now();
@@ -36,7 +37,7 @@ function getCurrentStage() {
 }
 
 // Konfiguracja testu
-export const options = {
+export const options = {  
   stages: [
     { duration: '30s', target: 50 },
     { duration: '2m', target: 50 },
@@ -54,20 +55,31 @@ export const options = {
 };
 
 const BASE_URL = 'http://[::1]:4001';
-const PROJECT_ID = 1;
+const TASK_ID = 1;
 const AUTH_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWxpY2Uuc21pdGhAZXhhbXBsZS5jb20iLCJyb2xlIjoic3VwZXJhZG1pbiIsImlhdCI6MTc1NzI0OTM3NiwiZXhwIjoxNzU3MjUyOTc2fQ.Tytmj2JhxIDVDdROgd8i6aUZNZoSgW6qonnSnpjb_Z8';
+
 export default function () {
-  const url = `${BASE_URL}/api/v1/projects/${PROJECT_ID}`;
+  const url = `${BASE_URL}/api/v1/comments/`;
   
   const headers = {
     'authorization': `Bearer ${AUTH_TOKEN}`,
     'content-type': 'application/json',
   };
 
+  // Generate unique comment text using timestamp and random string
+  const timestamp = Date.now();
+  const randomSuffix = randomString(8);
+  const commentText = `Test comment for load testing - ${timestamp} - ${randomSuffix}. This is a performance test comment.`;
+
+  const payload = JSON.stringify({
+    task_id: TASK_ID,
+    comment_text: commentText
+  });
+
   // Get current stage and add tags
   const stage = getCurrentStage();
   
-  const response = http.get(url, { 
+  const response = http.post(url, payload, { 
     headers,
     tags: {
       stage: stage.toString(),
@@ -77,12 +89,57 @@ export default function () {
   });
 
   check(response, {
-    'status is 200': (r) => r.status === 200,
+    'status is 201': (r) => r.status === 201,
     'response time < 1s': (r) => r.timings.duration < 1000,
-    'correct project returned': (r) => {
+    'response has comment_id': (r) => {
       try {
         const body = JSON.parse(r.body);
-        return body.project_id === PROJECT_ID;
+        return body.hasOwnProperty('comment_id') && 
+               typeof body.comment_id === 'number';
+      } catch (e) {
+        return false;
+      }
+    },
+    'response has correct task_id': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        return body.hasOwnProperty('task_id') && 
+               body.task_id === TASK_ID;
+      } catch (e) {
+        return false;
+      }
+    },
+    'response has correct user_id': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        return body.hasOwnProperty('user_id') && 
+               body.user_id === 1; // The user ID from the JWT token
+      } catch (e) {
+        return false;
+      }
+    },
+    'response has correct comment_text': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        return body.hasOwnProperty('comment_text') && 
+               body.comment_text === commentText;
+      } catch (e) {
+        return false;
+      }
+    },
+    'comment_id is positive number': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        return body.comment_id > 0;
+      } catch (e) {
+        return false;
+      }
+    },
+    'response has required fields': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        return body.hasOwnProperty('comment_text') && 
+               body.hasOwnProperty('created_at');
       } catch (e) {
         return false;
       }
@@ -92,7 +149,8 @@ export default function () {
   if (__ITER < 3) {
     console.log(`Response status: ${response.status}`);
     console.log(`Response time: ${response.timings.duration}ms`);
-    if (response.status !== 200) {
+    console.log(`Created comment for task ${TASK_ID}: ${commentText.substring(0, 50)}...`);
+    if (response.status !== 201) {
       console.log(`Response body: ${response.body}`);
     }
   }
@@ -106,9 +164,9 @@ export function handleSummary(data) {
   };
 
   const summary = {
-    test_name: 'REST Project Load Test',
-    endpoint: `/api/v1/projects/{id}`,
-    project_id: PROJECT_ID,
+    test_name: 'REST Create Comment Load Test',
+    endpoint: `POST /api/v1/comments/`,
+    task_id: TASK_ID,
     test_duration_ms: data.state?.testRunDurationMs || 0,
     total_requests: data.metrics?.http_reqs?.values?.count || 0,
     total_errors: data.metrics?.http_req_failed?.values?.count || 0,
@@ -130,7 +188,7 @@ export function handleSummary(data) {
     timestamp: new Date().toISOString(),
   };
 
-  const fileName = `../performance-analytics/summary/rest/1_get_project_info.json`;
+  const fileName = `../performance-analytics/summary/rest/8_create_comment_for_specific_task.json`;
   return {
     [fileName]: JSON.stringify(summary, null, 2),
   };
