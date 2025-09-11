@@ -272,7 +272,7 @@ class K6ChartGenerator:
             
             # Determine API type for title
             api_type = self._determine_api_type_from_data(response_data)
-            plt.title(f'{api_type} - Response Time Over Time', fontsize=16, fontweight='bold')
+            plt.title(f'{api_type} - Response Time Over Time', fontsize=20, fontweight='bold')
             
             # Add stage statistics
             stage_info = []
@@ -293,8 +293,8 @@ class K6ChartGenerator:
             
             info_text = '\n'.join(stage_info)
             plt.text(0.02, 0.98, info_text, transform=plt.gca().transAxes, 
-                    verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8),
-                    fontsize=11)
+                    verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.25),
+                    fontsize=14)
             
         else:
             # Plot without stage information
@@ -302,10 +302,10 @@ class K6ChartGenerator:
                     linewidth=1, alpha=0.7, color='#2E86AB')
             # Determine API type for title
             api_type = self._determine_api_type_from_data(response_data)
-            plt.title(f'{api_type} - Response Time Over Time', fontsize=16, fontweight='bold')
+            plt.title(f'{api_type} - Response Time Over Time', fontsize=20, fontweight='bold')
         
-        plt.xlabel('Time', fontsize=12)
-        plt.ylabel('Response Time (ms)', fontsize=12)
+        plt.xlabel('Time', fontsize=18)
+        plt.ylabel('Response Time (ms)', fontsize=18)
         
         # Convert timestamps to relative time for x-axis labels
         start_time = response_data['timestamp'].min()
@@ -329,7 +329,10 @@ class K6ChartGenerator:
         # Format x-axis with relative time labels
         ax = plt.gca()
         ax.set_xticks(tick_timestamps)
-        ax.set_xticklabels([self._format_relative_time(t) for t in tick_relative_times], rotation=45)
+        ax.set_xticklabels([self._format_relative_time(t) for t in tick_relative_times], rotation=45, fontsize=15)
+        
+        # Set y-axis tick labels to match x-axis font size
+        ax.tick_params(axis='y', labelsize=15)
         
         # Add overall statistics
         mean_time = response_data['metric_value'].mean()
@@ -339,7 +342,7 @@ class K6ChartGenerator:
         plt.axhline(y=mean_time, color='black', linestyle='--', alpha=0.7, 
                    label=f'Overall Mean: {mean_time:.2f}ms')
         
-        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=15)
         plt.tight_layout()
         
         if output_file:
