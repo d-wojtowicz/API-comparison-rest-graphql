@@ -1,0 +1,25 @@
+{
+  "test_name": "GraphQL Create Task Load Test",
+  "endpoint": "POST /graphql",
+  "project_id": 1,
+  "status_id": 1,
+  "test_duration_ms": 901858.7254,
+  "total_requests": 205673,
+  "total_errors": 0,
+  "error_rate": "0.00%",
+  "response_times": {
+    "average": "827.69ms",
+    "min": "0.50ms",
+    "max": "4228.51ms",
+    "p90": "1632.37ms",
+    "p95": "1721.52ms"
+  },
+  "throughput": {
+    "requests_per_second": "228.05"
+  },
+  "concurrent_users": {
+    "max": 1000,
+    "avg": "N/A"
+  },
+  "timestamp": "2025-09-11T15:56:35.604Z"
+}

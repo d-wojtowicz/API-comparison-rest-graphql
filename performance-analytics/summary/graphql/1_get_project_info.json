@@ -1,0 +1,24 @@
+{
+  "test_name": "GraphQL Project Load Test",
+  "endpoint": "/graphql",
+  "project_id": 1,
+  "test_duration_ms": 901181.1873,
+  "total_requests": 334519,
+  "total_errors": 0,
+  "error_rate": "0.00%",
+  "response_times": {
+    "average": "122.11ms",
+    "min": "0.00ms",
+    "max": "771.58ms",
+    "p90": "408.62ms",
+    "p95": "440.90ms"
+  },
+  "throughput": {
+    "requests_per_second": "371.20"
+  },
+  "concurrent_users": {
+    "max": 1000,
+    "avg": "N/A"
+  },
+  "timestamp": "2025-09-10T11:20:09.694Z"
+}

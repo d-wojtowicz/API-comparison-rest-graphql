@@ -1,0 +1,23 @@
+{
+  "test_name": "REST My Notifications Load Test",
+  "endpoint": "/api/v1/notifications/my",
+  "test_duration_ms": 901278.6388,
+  "total_requests": 310451,
+  "total_errors": 0,
+  "error_rate": "0.00%",
+  "response_times": {
+    "average": "209.27ms",
+    "min": "0.31ms",
+    "max": "964.28ms",
+    "p90": "504.02ms",
+    "p95": "655.26ms"
+  },
+  "throughput": {
+    "requests_per_second": "344.46"
+  },
+  "concurrent_users": {
+    "max": 1000,
+    "avg": "N/A"
+  },
+  "timestamp": "2025-09-10T08:05:29.652Z"
+}

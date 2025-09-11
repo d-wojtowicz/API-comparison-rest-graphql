@@ -1,0 +1,23 @@
+{
+  "test_name": "GraphQL Create Status Load Test",
+  "endpoint": "POST /graphql",
+  "test_duration_ms": 901554.8597,
+  "total_requests": 269224,
+  "total_errors": 0,
+  "error_rate": "0.00%",
+  "response_times": {
+    "average": "395.83ms",
+    "min": "0.44ms",
+    "max": "1410.24ms",
+    "p90": "845.22ms",
+    "p95": "935.34ms"
+  },
+  "throughput": {
+    "requests_per_second": "298.62"
+  },
+  "concurrent_users": {
+    "max": 1000,
+    "avg": "N/A"
+  },
+  "timestamp": "2025-09-11T15:38:05.254Z"
+}

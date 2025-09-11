@@ -1,0 +1,24 @@
+{
+  "test_name": "GraphQL Create Comment Load Test",
+  "endpoint": "POST /graphql",
+  "task_id": 1,
+  "test_duration_ms": 901284.0663,
+  "total_requests": 203139,
+  "total_errors": 0,
+  "error_rate": "0.00%",
+  "response_times": {
+    "average": "847.68ms",
+    "min": "0.43ms",
+    "max": "2935.76ms",
+    "p90": "1882.27ms",
+    "p95": "1977.71ms"
+  },
+  "throughput": {
+    "requests_per_second": "225.39"
+  },
+  "concurrent_users": {
+    "max": 1000,
+    "avg": "N/A"
+  },
+  "timestamp": "2025-09-11T16:20:14.774Z"
+}

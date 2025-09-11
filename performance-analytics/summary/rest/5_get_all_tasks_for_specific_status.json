@@ -1,0 +1,24 @@
+{
+  "test_name": "REST Tasks by Status Load Test",
+  "endpoint": "/api/v1/statuses/{statusId}/tasks",
+  "status_id": 1,
+  "test_duration_ms": 901779.0713,
+  "total_requests": 255705,
+  "total_errors": 0,
+  "error_rate": "0.00%",
+  "response_times": {
+    "average": "467.88ms",
+    "min": "0.40ms",
+    "max": "1332.46ms",
+    "p90": "1073.22ms",
+    "p95": "1104.03ms"
+  },
+  "throughput": {
+    "requests_per_second": "283.56"
+  },
+  "concurrent_users": {
+    "max": 1000,
+    "avg": "N/A"
+  },
+  "timestamp": "2025-09-10T08:24:20.897Z"
+}

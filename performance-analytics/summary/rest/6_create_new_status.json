@@ -1,0 +1,23 @@
+{
+  "test_name": "REST Create Status Load Test",
+  "endpoint": "POST /api/v1/statuses/",
+  "test_duration_ms": 901390.6978,
+  "total_requests": 276631,
+  "total_errors": 0,
+  "error_rate": "0.00%",
+  "response_times": {
+    "average": "357.99ms",
+    "min": "0.39ms",
+    "max": "1728.40ms",
+    "p90": "837.28ms",
+    "p95": "1021.84ms"
+  },
+  "throughput": {
+    "requests_per_second": "306.89"
+  },
+  "concurrent_users": {
+    "max": 1000,
+    "avg": "N/A"
+  },
+  "timestamp": "2025-09-10T08:44:39.123Z"
+}

@@ -36,6 +36,13 @@ pip install -r requirements.txt
 # From repository root
 cd backend-rest
 k6 run --out csv=../performance-analytics/data/rest/1_get_project_info.csv tests/k6/test_1_get_project_info.js
+k6 run --out csv=../performance-analytics/data/rest/2_get_task_attachments.csv tests/k6/test_2_get_task_attachments.js
+k6 run --out csv=../performance-analytics/data/rest/3_get_all_projects.csv tests/k6/test_3_get_all_projects.js
+k6 run --out csv=../performance-analytics/data/rest/4_get_my_notifications.csv tests/k6/test_4_get_my_notifications.js
+k6 run --out csv=../performance-analytics/data/rest/5_get_all_tasks_for_specific_status.csv tests/k6/test_5_get_all_tasks_for_specific_status.js
+k6 run --out csv=../performance-analytics/data/rest/6_create_new_status.csv tests/k6/test_6_create_new_status.js
+k6 run --out csv=../performance-analytics/data/rest/7_create_new_task_for_specific_project.csv tests/k6/test_7_create_new_task_for_specific_project.js
+k6 run --out csv=../performance-analytics/data/rest/8_create_new_comment_for_specific_task.csv tests/k6/test_8_create_new_comment_for_specific_task.js
 ```
 
 #### For GraphQL API Tests:
@@ -43,6 +50,13 @@ k6 run --out csv=../performance-analytics/data/rest/1_get_project_info.csv tests
 # From repository root
 cd backend-graphql
 k6 run --out csv=../performance-analytics/data/graphql/1_get_project_info.csv tests/k6/test_1_get_project_info.js
+k6 run --out csv=../performance-analytics/data/graphql/2_get_task_attachments.csv tests/k6/test_2_get_task_attachments.js
+k6 run --out csv=../performance-analytics/data/graphql/3_get_all_projects.csv tests/k6/test_3_get_all_projects.js
+k6 run --out csv=../performance-analytics/data/graphql/4_get_my_notifications.csv tests/k6/test_4_get_my_notifications.js
+k6 run --out csv=../performance-analytics/data/graphql/5_get_all_tasks_for_specific_status.csv tests/k6/test_5_get_all_tasks_for_specific_status.js
+k6 run --out csv=../performance-analytics/data/graphql/6_create_new_status.csv tests/k6/test_6_create_new_status.js
+k6 run --out csv=../performance-analytics/data/graphql/7_create_new_task_for_specific_project.csv tests/k6/test_7_create_new_task_for_specific_project.js
+k6 run --out csv=../performance-analytics/data/graphql/8_create_new_comment_for_specific_task.csv tests/k6/test_8_create_new_comment_for_specific_task.js
 ```
 
 ### Step 2: Generate Performance Charts

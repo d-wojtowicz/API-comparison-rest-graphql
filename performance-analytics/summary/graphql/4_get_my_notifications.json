@@ -1,0 +1,23 @@
+{
+  "test_name": "GraphQL My Notifications Load Test",
+  "endpoint": "/graphql",
+  "test_duration_ms": 901501.8926,
+  "total_requests": 272067,
+  "total_errors": 0,
+  "error_rate": "0.00%",
+  "response_times": {
+    "average": "380.25ms",
+    "min": "0.33ms",
+    "max": "1718.82ms",
+    "p90": "872.11ms",
+    "p95": "1072.20ms"
+  },
+  "throughput": {
+    "requests_per_second": "301.79"
+  },
+  "concurrent_users": {
+    "max": 1000,
+    "avg": "N/A"
+  },
+  "timestamp": "2025-09-10T12:13:28.281Z"
+}
