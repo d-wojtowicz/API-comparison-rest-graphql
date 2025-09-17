@@ -2,23 +2,23 @@
   "test_name": "GraphQL Task Attachments Load Test",
   "endpoint": "/graphql",
   "task_id": 1,
-  "test_duration_ms": 901185.5419,
-  "total_requests": 336882,
+  "test_duration_ms": 901607.2718,
+  "total_requests": 249909,
   "total_errors": 0,
   "error_rate": "0.00%",
   "response_times": {
-    "average": "114.19ms",
-    "min": "0.00ms",
-    "max": "779.71ms",
-    "p90": "240.73ms",
-    "p95": "422.88ms"
+    "average": "503.78ms",
+    "min": "0.40ms",
+    "max": "1518.87ms",
+    "p90": "1086.54ms",
+    "p95": "1145.01ms"
   },
   "throughput": {
-    "requests_per_second": "373.82"
+    "requests_per_second": "277.18"
   },
   "concurrent_users": {
     "max": 1000,
     "avg": "N/A"
   },
-  "timestamp": "2025-09-10T11:35:20.829Z"
+  "timestamp": "2025-09-17T06:51:13.377Z"
 }

@@ -2,23 +2,23 @@
   "test_name": "GraphQL Tasks by Status Load Test",
   "endpoint": "/graphql",
   "status_id": 1,
-  "test_duration_ms": 903599.78,
-  "total_requests": 175256,
+  "test_duration_ms": 902706.6007,
+  "total_requests": 190345,
   "total_errors": 0,
   "error_rate": "0.00%",
   "response_times": {
-    "average": "1147.77ms",
-    "min": "0.36ms",
-    "max": "3125.00ms",
-    "p90": "2435.19ms",
-    "p95": "2932.16ms"
+    "average": "974.65ms",
+    "min": "0.34ms",
+    "max": "2516.14ms",
+    "p90": "2159.57ms",
+    "p95": "2184.90ms"
   },
   "throughput": {
-    "requests_per_second": "193.95"
+    "requests_per_second": "210.86"
   },
   "concurrent_users": {
     "max": 1000,
     "avg": "N/A"
   },
-  "timestamp": "2025-09-11T15:07:16.264Z"
+  "timestamp": "2025-09-17T07:53:19.083Z"
 }
